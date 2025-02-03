@@ -15,6 +15,7 @@ const respondRoutes = require("./routes/respondRoutes");
 const respondentRoutes = require("./routes/respondentRoutes");
 const respondentApplyRoutes = require("./routes/respondentApplyRoutes");
 const surveyorApplyRoutes = require("./routes/surveyorApplyRoutes");
+const midtransRoutes = require("./routes/midtransRoutes")
 const test = require('./routes/upload');
 
 
@@ -26,6 +27,7 @@ app.use("/api/v1/responds",respondRoutes);
 app.use("/api/v1/respondents",respondentRoutes);
 app.use("/api/v1/respondentapplies",respondentApplyRoutes);
 app.use("/api/v1/surveyorapplies",surveyorApplyRoutes)
+app.use("/api/v1/midtransNotif",midtransRoutes)
 app.use(test);
 
 //untuk error apabila routes tidak ada

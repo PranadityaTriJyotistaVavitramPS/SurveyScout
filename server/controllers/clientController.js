@@ -24,6 +24,7 @@ exports.clientGoogleLogin = async(req,res) =>{
         // const payload = dummyPayload;
         const email = payload.email;
         const nama_lengkap = payload.name;
+        const picture = payload.picture;
 
         //sudah dapet data itu, kita cek ada apa nggak di database
         const result = await query(`SELECT email FROM client_table WHERE email = $1`,[email]);
@@ -33,7 +34,7 @@ exports.clientGoogleLogin = async(req,res) =>{
         if(!user){
             const createClientGoogle = await query(`
                 INSERT INTO client_table
-                (nama_lengkap, password, jenis_kelamin, nomor_telepon, email, nik, perusahaan, jenis_usaha) 
+                (nama_lengkap, password, jenis_kelamin, nomor_telepon, email, nik, perusahaan, jenis_usaha,profile_picture) 
                 VALUES($1,$2,$3,$4,$5,$6,$7,$8)
                 RETURNING *`
             ,[
@@ -44,7 +45,8 @@ exports.clientGoogleLogin = async(req,res) =>{
                 email,
                 nikPlaceholder,
                 '',
-                'unknown'
+                'unknown',
+                picture
             ]);
             user = createClientGoogle.rows[0];
         }
@@ -214,18 +216,15 @@ exports.deleteAccount = async(req,res) => {
     const{id_client} = req.body
 
     try {
-        const result = await query(`DELETE FROM client_table WHERE id_client = $1`,[id_client])
-        if(result.rows.length === 0){
-            return res.status(404).json({
-                message:"User Not Found"
-            })
-        }
-
+        await query(`DELETE FROM client_table WHERE id_client = $1`,[id_client]);
         res.status(200).json({
             message:"succes",
         })
     } catch (error) {
-        
+        console.error("Error ketika menggambil data client",error);
+        return res.status(500).json({
+            message:"Internal Server Error"
+        })
     }
 }
 
