@@ -1,25 +1,39 @@
 const {query} = require('../db/index');
 const midtransClient = require('midtrans-client');
+const moment = require('moment-timezone');
+require('moment/locale/id');
+moment.locale('id');
 
 //membuat draft respond
 exports.createRespondDraft = async(req,res) =>{
-    const{id_client,nama_proyek,deskripsi_proyek, tenggat_pengerjaan, 
-        demografis_responden, kompensasi, metode_survey, 
-        kualifikasi, jumlah_responden
+    const{nama_proyek,deskripsi_proyek, tenggat_pengerjaan, 
+        lokasi, kompensasi, metode_survey, 
+        keahlian, jumlah_responden, tugas, tenggat_pendaftaran, rentang_usia,hobi
     } = req.body
+
+    console.log(req.body)
+
+    const id_client = req.user.id_user
 
     try {
         //membuat order_id untuk respond
         const order_id = `RESPOND-${Date.now()}`;
 
-        const kualifikasiArray = Array.isArray(kualifikasi) ? kualifikasi : JSON.parse(kualifikasi);
+        
+        const formatPengerjaanDate = moment.tz(tenggat_pengerjaan,'HH:mm, DD MMMM YYYY', 'Asia/Jakarta');
+        const formattedPengerjaanDate = formatPengerjaanDate.format('YYYY-MM-DD HH:mm:ss');
 
+        const formatPendaftaranDate = moment.tz(tenggat_pendaftaran,'HH:mm, DD MMMM YYYY', 'Asia/Jakarta');
+        const formattedPendaftaranDate = formatPendaftaranDate.format('YYYY-MM-DD HH:mm:ss');
+        const usiaArray = Array.isArray(rentang_usia) ? rentang_usia : rentang_usia.split(",");
+        const hobiArray = Array.isArray(hobi) ? hobi : hobi.split(",");
         //memasukkan ke draft respond
         const draft = await query(`INSERT INTO respond_draft_table 
-            (id_client,nama_proyek,deskripsi_proyek, tenggat_pengerjaan, demografis_responden, kompensasi, metode_survey, status, kualifikasi,
-            jumlah_responden,order_id) VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8::TEXT[],$9,$10)
-        `,[id_client,nama_proyek,deskripsi_proyek,tenggat_pengerjaan,demografis_responden,kompensasi,metode_survey,kualifikasiArray,jumlah_responden,
-            order_id
+            (id_client,nama_proyek,deskripsi_proyek, tenggat_pengerjaan, lokasi, kompensasi, metode_survey, status, keahlian,
+            jumlah_responden,order_id,status_task,tenggat_pendaftaran,tugas,rentang_usia,hobi) 
+            VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,'draft',$11,$12,$13::INTEGER[],$14::VARCHAR[]) RETURNING *
+        `,[id_client,nama_proyek,deskripsi_proyek,formattedPengerjaanDate,lokasi,kompensasi,metode_survey,keahlian,
+            jumlah_responden,order_id,formattedPendaftaranDate,tugas,usiaArray,hobiArray
         ])
 
         res.status(201).json({
@@ -36,7 +50,7 @@ exports.createRespondDraft = async(req,res) =>{
 
 //membuat pembayaran
 exports.createRespondPayment = async(req,res) =>{
-    const{id_draft} = req.body
+    const{id_draft} = req.params
 
     try {
         //mengambil data dari draft
@@ -63,16 +77,34 @@ exports.createRespondPayment = async(req,res) =>{
         const { email, nomor_telepon } = client;
         const phone_number = nomor_telepon || "0000000000";
 
-        //membuat payment_table
-        await query(`INSERT INTO payment_table (order_id, jumlah_harga, id_client, status_payment, status_release)
-            VALUES($1,$2,$3,'pending','pending')`,
-        [order_id,total_kompensasi,id_client]);
+        // Check if payment with the same order_id and 'failed' status exists
+        const checkOrderId = await query(`SELECT * FROM payment_table WHERE order_id = $1 AND status_payment = 'failed'`, [order_id]);
+        let end_order_id = '';
+        console.log("ini panjangnyaa",checkOrderId.rows.length)
+        if (checkOrderId.rows.length === 1) {
+            const new_order_id = `SURVEY-${Date.now()}`;
+            end_order_id = new_order_id;
+            
+            await query(`UPDATE respond_draft_table SET order_id = $1 WHERE order_id = $2`, [new_order_id, order_id]);
+
+            await query(`DELETE FROM payment_table WHERE order_id = $1`, [order_id]);
+
+            await query(`
+                INSERT INTO payment_table (order_id, jumlah_harga, id_client, status_payment, status_release)
+                VALUES ($1, $2, $3, 'pending', 'pending')
+            `, [new_order_id, total_kompensasi, id_client]);
+
+        }
 
         //buat transaksi midtrans
+        let snap = new midtransClient.Snap({
+            isProduction: false,
+            serverKey: process.env.MIDTRANS_SERVER_KEY
+        });
 
         let parameter = {
             "transaction_details": {
-                'order_id': order_id,
+                'order_id': end_order_id,
                 'gross_amount': total_kompensasi
             },
             "customer_details": {
@@ -82,6 +114,9 @@ exports.createRespondPayment = async(req,res) =>{
         };
 
         const transaction = await snap.createTransaction(parameter);
+        await query(`UPDATE respond_draft_table SET midtrans_link =$1,midtrans_token=$2,status_task='pembayaran' WHERE id_draft = $3`
+            ,[transaction.redirect_url,transaction.token,id_draft]
+        )
 
         res.status(201).json({
             message: "Pembayaran berhasil dibuat",
@@ -100,7 +135,7 @@ exports.createRespondPayment = async(req,res) =>{
 }
 
 //memindahkan draft ke tabel respond
-exports.moveDraftToRespond = async(req,res) =>{
+exports.moveDraftToRespond = async(order_id) =>{
     try {
         //Ambil data dari `respond_draft_table`
         const draftData = await query(`
@@ -113,17 +148,19 @@ exports.moveDraftToRespond = async(req,res) =>{
         }
 
         const draft = draftData.rows[0];
-        draft.kualifikasi = typeof draft.kualifikasi === 'string' ? draft.keahlian.replace(/[{}"]/g, "").split(",") : draft.kualifikasi;
+        draft.hobi = typeof draft.hobi === 'string' ? draft.hobi.replace(/[{}"]/g, "").split(",") : draft.hobi;
 
         //Insert data ke `respond_table`
         await query(`
             INSERT INTO respond_table 
-            (id_client, nama_proyek, deskripsi_proyek, tenggat_pengerjaan, demografis_responden, metode_survey,kualifikasi, kompensasi)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+            (id_client, nama_proyek, deskripsi_proyek, tenggat_pengerjaan, lokasi, 
+            metode_survey,keahlian, kompensasi,jumlah_responden,order_id,tenggat_pendaftaran,tugas,rentang_usia,hobi)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *
         `,[
             draft.id_client, draft.nama_proyek, draft.deskripsi_proyek, 
-            draft.tenggat_pengerjaan, draft.demografis_responden, draft.metode_survey, 
-            draft.kualifikasi, draft.kompensasi
+            draft.tenggat_pengerjaan, draft.lokasi, draft.metode_survey, 
+            draft.keahlian, draft.kompensasi,draft.jumlah_responden,draft.order_id,
+            draft.tenggat_pendaftaran,draft.tugas,draft.rentang_usia,draft.hobi
         ]);
 
         //Hapus dari `survey_draft_table`
@@ -132,29 +169,6 @@ exports.moveDraftToRespond = async(req,res) =>{
 
     } catch (error) {
         console.error("❌ Error saat memindahkan draft ke respond:", error);
-        res.status(500).json({message:"Internal Server Error"});
-    }
-}
-
-//mengambil salah satu task respond
-exports.getAResponTask = async(req,res) =>{
-    const {id_respond} = req.body
-    try {
-        const result = await query(`SELECT * FROM respond_table WHERE id_respond =$1`,[id_respond]);
-        if(result.rows.length === 0){
-            return res.status(404).json({
-                message:"respond task tidak ditemukan"
-            })
-        }
-
-        res.status(200).json({
-            status:"success",
-            data: result.rows[0]
-        })
-    } catch (error) {
-        console.error("error ketika mengambil sebuah respond task :",error);
-        res.status(500).json({message:"Internal Server Error"});
-        
     }
 }
 
@@ -168,10 +182,12 @@ exports.getAllRespondTask = async(req,res) =>{
             })
         }
 
+        const respondData = result.rows;
+
         res.status(200).json({
             status:"success",
-            data:result.rows
-        })  
+            data:respondData
+        })
     } catch (error) {
         console.error(" Error saat mengambil seluruh data respond task:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -190,6 +206,32 @@ exports.deleteARespond = async(req,res)=>{
         console.error("error saat menghapus sebuah respond task",error);
         res.status(500).json({
             message:"Internal Server Error",
+        })
+    }
+}
+
+
+//surveyor ingin melihat task respond apa saja yang mereka daftar
+exports.surveyorTaskRespond = async(req,res) =>{
+    const{id_responden} = req.body;
+    try {
+        const result = await query(`SELECT id_respond,waktu_mendaftar FROM respondent_application WHERE id_responden = $1`,[id_responden]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "Responden belum mendaftar ke tugas mana pun"
+            });
+        }
+        const idResponds = result.rows.map(data => data.id_respond);
+        const respondData = await query(`SELECT * FROM respond_table WHERE id_respond = ANY($1)`,[idResponds])
+
+        res.status(200).json({
+            message:"data sukses diambil",
+            data:respondData.rows
+        })
+    } catch (error) {
+        console.error("error ketika surveyor ingin melihat task respond yang didaftar",error);
+        res.status(500).json({
+            message:"Internal Server Error"
         })
     }
 }

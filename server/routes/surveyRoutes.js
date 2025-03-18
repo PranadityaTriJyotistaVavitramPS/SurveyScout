@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const surveyController = require("../controllers/surveyController");
+const authenticate = require("../middleware/authenticate")
 
-router.post('/createSurveyDraft',surveyController.createSurveyDraft);
-router.post('/createSurveyPayment',surveyController.createSurveyPayment);
-router.get('/getASurveyTask',surveyController.getASurveyTask);
-router.get('/getAllSurveyTask',surveyController.getAllSurveyTask);
+router.post('/createSurveyDraft',authenticate,surveyController.createSurveyDraft);
+router.post('/createSurveyPayment/:id_draft',surveyController.createSurveyPayment);
+router.get('/',surveyController.getAllSurveyTask);
 router.delete('/deleteATask',surveyController.deleteASurvey);
 
 module.exports = router;

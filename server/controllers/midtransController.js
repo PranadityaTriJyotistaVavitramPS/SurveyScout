@@ -1,82 +1,85 @@
 const {query} = require('../db/index');
 const midtransClient = require("midtrans-client");
 const {moveDraftToSurvey} = require("./surveyController");
-const {moveRespondDraftToRespond} = require("./respondController");
+const {moveDraftToRespond} = require("./respondController");
 
 exports.midtransNotification = async (req, res) => {
-    const { order_id, transaction_status, fraud_status, status_code } = req.body;
+    const { order_id, transaction_status, fraud_status, transaction_id } = req.body;
     console.log("📌 Midtrans Notification Received:", req.body);
 
     try {
-        // Cek prefix pada order_id untuk membedakan survey dan respond
         if (order_id.startsWith('SURVEY')) {
-
             // Cek apakah pembayaran valid berdasarkan order_id untuk survey
             const paymentCheck = await query(`SELECT * FROM payment_table WHERE order_id = $1`, [order_id]);
             if (paymentCheck.rows.length === 0) {
                 return res.status(404).json({ message: "Order ID tidak ditemukan" });
             }
-
-            // Update status pembayaran berdasarkan notifikasi Midtrans
             if (transaction_status === "settlement" && fraud_status === "accept") {
-                await query(`UPDATE payment_table SET status_payment = 'paid' WHERE order_id = $1`, [order_id]);
-                await query(`UPDATE survey_draft_table SET status = 'paid' WHERE order_id = $1`, [order_id]);
-
-                // Pindahkan Draft Survey ke Survey Table
+                await query(`UPDATE survey_draft_table SET status_pembayaran = 'paid' WHERE order_id = $1`, [order_id]);
                 await moveDraftToSurvey(order_id);
-
             } else if (transaction_status === "pending") {
-                console.log(`⌛ Pembayaran pending untuk Order ID Survey: ${order_id}`);
-                await query(`UPDATE payment_table SET status_payment = 'pending' WHERE order_id = $1`, [order_id]);
-
-            } else if (["expire", "cancel", "deny"].includes(transaction_status)) {
-                console.log(`❌ Pembayaran gagal (${transaction_status}) untuk Order ID Survey: ${order_id}`);
-                await query(`UPDATE payment_table SET status_payment = 'failed' WHERE order_id = $1`, [order_id]);
-                await query(`UPDATE survey_draft_table SET status = 'failed' WHERE order_id = $1`, [order_id]);
+                await query(`UPDATE payment_table SET status_payment ='pending', id_transaksi_midtrans=$1 WHERE order_id = $2`, [transaction_id,order_id]);
+            } else if (transaction_status === "expire" || transaction_status ==='cancel' || transaction_status ==='deny' || transaction_status ==='failure') {
+                await query(`UPDATE survey_draft_table SET status_pembayaran = 'failed' WHERE order_id = $1`, [order_id]);
             }
 
         } else if (order_id.startsWith('RESPOND')) {
-            // Handle respond order
-            console.log(`🔍 Menemukan Order ID Respond: ${order_id}`);
-
-            // Cek apakah pembayaran valid berdasarkan order_id untuk respond
+            
             const paymentCheck = await query(`SELECT * FROM payment_table WHERE order_id = $1`, [order_id]);
             if (paymentCheck.rows.length === 0) {
-                console.error(`🚨 Order ID Respond ${order_id} tidak ditemukan di database!`);
                 return res.status(404).json({ message: "Order ID tidak ditemukan" });
             }
 
             // Update status pembayaran berdasarkan notifikasi Midtrans
             if (transaction_status === "settlement" && fraud_status === "accept") {
-                console.log(`✅ Pembayaran sukses untuk Order ID Respond: ${order_id}`);
-                await query(`UPDATE payment_table SET status_payment = 'paid' WHERE order_id = $1`, [order_id]);
                 await query(`UPDATE respond_draft_table SET status = 'paid' WHERE order_id = $1`, [order_id]);
 
-                // Pindahkan Draft Respond ke Respond Table
-                await moveRespondDraftToRespond(order_id); // Pastikan fungsi ini ada di respondController
+                await moveDraftToRespond(order_id); 
 
             } else if (transaction_status === "pending") {
-                console.log(`⌛ Pembayaran pending untuk Order ID Respond: ${order_id}`);
-                await query(`UPDATE payment_table SET status_payment = 'pending' WHERE order_id = $1`, [order_id]);
+                await query(`UPDATE payment_table SET status_payment ='pending', id_transaksi_midtrans=$1 WHERE order_id = $2`, [transaction_id,order_id]);
 
             } else if (["expire", "cancel", "deny"].includes(transaction_status)) {
-                console.log(`❌ Pembayaran gagal (${transaction_status}) untuk Order ID Respond: ${order_id}`);
-                await query(`UPDATE payment_table SET status_payment = 'failed' WHERE order_id = $1`, [order_id]);
                 await query(`UPDATE respond_draft_table SET status = 'failed' WHERE order_id = $1`, [order_id]);
             }
-
         } else {
-            console.error(`❗ Order ID tidak valid untuk: ${order_id}`);
+            console.error(`Order ID tidak valid untuk: ${order_id}`);
             return res.status(400).json({ message: "Invalid Order ID" });
         }
-
-        // 3️⃣ Kirim response sukses ke Midtrans
-        res.status(200).json({ message: "Notification received" });
-
+        res.status(200).json({
+            message:"notifikasi midtrans masuk"
+        })
     } catch (error) {
-        console.error("🚨 Error during payment notification:", error);
+        console.error("Error during midtrans notification:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
-//melakukan reimbursement
+
+//response untuk notif midtrans
+exports.midtransResponse = async(req,res) =>{
+    const {order_id} = req.body
+    let snap = new midtransClient.Snap({
+        isProduction: false,
+        serverKey: process.env.MIDTRANS_SERVER_KEY,
+        clientKey: process.env.MIDTRANS_CLIENT_KEY
+    });
+
+    try {
+        const status = await snap.transaction.status(order_id)
+        if(status.transaction_status == 'expire')
+        {
+            await query(`UPDATE payment_table SET status_payment='failed' WHERE order_id = $1`, [order_id]);
+        } else if(status.transaction_status == 'settlement'){
+            await query(`UPDATE payment_table SET status_payment = 'paid' WHERE order_id = $1`, [order_id]);
+        }
+        res.status(200).json({
+            message:"menerima notifikasi",
+            status:status
+        })
+        
+    } catch (error) {
+        console.error("error saat berusaha memberikan response dari callback midtrans",error)
+        res.status(500).json({message:"Internal Server Error awikwok"})
+    }
+}
