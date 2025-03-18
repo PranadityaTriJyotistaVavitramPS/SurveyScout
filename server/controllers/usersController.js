@@ -1,7 +1,7 @@
 const firebaseAdmin = require('firebase-admin');
 const { query } = require('../db');  // Pastikan Anda sudah menghubungkan ke PostgreSQL
 const jwt = require('jsonwebtoken');
-const teskey = require('../secret/surveyscout-9146c-firebase-adminsdk-fbsvc-dbeae7a40f.json')
+const teskey = require('/etc/secrets/surveyscout-9146c-firebase-adminsdk-fbsvc-dbeae7a40f.json')
 
 
 // Inisialisasi Firebase Admin SDK

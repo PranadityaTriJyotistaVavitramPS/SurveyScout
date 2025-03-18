@@ -2,7 +2,7 @@ const fs = require('fs');
 const { Storage } = require('@google-cloud/storage');
 
 const storage = new Storage({
-  keyFilename: './secret/surveyscout-450117-c90b322ee8e2.json',
+  keyFilename: '/etc/secrets/surveyscout-450117-c90b322ee8e2.json',
 });
 
 const bucket = storage.bucket('surveyscout-bucket1');
