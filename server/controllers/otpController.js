@@ -8,8 +8,7 @@ const { query } = require('../db/index'); // Mengimpor fungsi query dari db
 
 // Initialize Redis client
 const redisClient = redis.createClient({
-    host:"localhost",
-    port:6379
+  url: process.env.REDIS_URL || 'redis://redis:6379'
 });
 
 redisClient.on("connect", () => {
