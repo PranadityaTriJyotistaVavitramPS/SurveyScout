@@ -21,7 +21,7 @@ exports.applyToSurvey = async(req,res) =>{
 
 //menampilkan pendaftar suatu project survey
 exports.surveyorWorker = async(req,res) => {
-    const{id_survey} = req.body
+    const{id_survey} = req.params
     try {
         //ambil siapa aja yang daftar di survey ini
         const projectCandidate = await query(`
