@@ -50,8 +50,6 @@ exports.uploadCVFiles = async(file) => {
 
 }
 
-
-
 exports.uploadPictureFile = async (file) => {
   try {
     const destination = `profilepictures/${Date.now()}-${file.originalname}`;
@@ -79,6 +77,32 @@ exports.uploadPictureFile = async (file) => {
     throw new Error('Failed to upload file');
   }
 };
+
+//uploadjawabanSurveyor
+exports.uploadSurveyorAnswer = async(file) =>{
+  try {
+    const destination = `surveyor_answer/${Date.now()}-${file.originalname}`
+    await bucket.upload(file.path, {
+      destination: destination,
+    });
+
+    if (fs.existsSync(file.path)) {
+      fs.unlink(file.path, (err) => {
+        if (err) console.error("Error deleting local file:", err);
+        else console.log(`File ${file.path} deleted locally`);
+      });
+    }
+
+    const fileUrl = await exports.getSignedUrlForever(destination);
+    return fileUrl;
+
+  } catch (error) {
+    console.error('Error uploading file surveyor answer to Google Cloud Storage:', error);
+    throw new Error('Failed to upload file');
+  }
+}
+
+
 
 
 //mendapatkan nama file

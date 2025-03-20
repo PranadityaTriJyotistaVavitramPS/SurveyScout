@@ -3,6 +3,8 @@ const midtransClient = require("midtrans-client");
 const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
+multer = require('multer');
+const {uploadSurveyorAnswer} = require('./uploadFile')
 
 
 //memasukkan task yang telah dibuat ke draft (belum dilakukan pembayaran)
@@ -397,6 +399,71 @@ exports.surveyorProjects = async(req,res) =>{
   //kita pakai map buat nampilin detail surveynya + status dari surveyor_application buat nampilin status
 
 }
+
+
+const multerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, 'uploads/');  
+  },
+  filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ 
+  storage: multerStorage,
+});
+
+exports.uploadAnswers = upload.array('file');
+
+//mengumpulkan jawaban (sisi surveyor)
+exports.submitSurveyorAnswer = async(req,res) =>{
+  const{id_survey} = req.body;
+  const id_surveyor = req.user;
+  const files = req.files;
+  try {
+    //pertama check dulu identitas valid apa ngga ? boleh ngga dia ngisi/ ngelihat jawaban
+    const checkCandidateStatus = await query(`SELECT status FROM survey_application WHERE id_surveyor = $1 AND id_survey =$2`,[id_surveyor,id_survey])
+    const status = checkCandidateStatus.rows[0].status;
+
+    if (["ditolak","pending"].includes(status)) {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+    
+    const outputTarget = await query(`SELECT id_luaran,status_revisi FROM survey_table WHERE id_survey =$1`,[id_survey])
+    const {id_luaran,status_revisi} = outputTarget.rows[0]
+    if(status_revisi == false){
+      if (["diterima", "dikerjakan", "ditinjau"].includes(status)){
+        const uploadedFiles = await uploadSurveyorAnswer(files);
+        const queryText = `
+          INSERT INTO luaran_survey (survey_id, file)  
+          VALUES ${uploadedFiles.map((_, i) => `($1, $${i + 2})`).join(", ")}
+          RETURNING *;
+        `;
+        const values = [id_luaran, ...uploadedFiles];
+        const result = await query(queryText, values);
+        res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows });
+      }
+    } else {
+      if (["diterima", "dikerjakan", "ditinjau"].includes(status)){
+        const uploadedFiles = await uploadSurveyorAnswer(files);
+        const queryText = `
+          INSERT INTO luaran_survey (survey_id, file)  
+          VALUES ${uploadedFiles.map((_, i) => `($1, $${i + 2})`).join(", ")}
+          RETURNING *;
+        `;
+        const values = [id_luaran, ...uploadedFiles];
+        const result = await query(queryText, values);
+        res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows });
+      }
+  } 
+  } catch (error) {
+      console.error("Error ketika mengupload jawaban Surveyor",error)
+      res.status(500).json({message:"Internal Server Error"})
+  }
+}
+
+
 
 //ajuan revisi jawaban projek survey
 exports.revisiSurvey = async(req,res) =>{
