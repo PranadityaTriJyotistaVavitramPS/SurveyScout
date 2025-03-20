@@ -79,30 +79,29 @@ exports.uploadPictureFile = async (file) => {
 };
 
 //uploadjawabanSurveyor
-exports.uploadSurveyorAnswer = async(file) =>{
+exports.uploadSurveyorAnswer = async(files) => {
   try {
-    const destination = `surveyor_answer/${Date.now()}-${file.originalname}`
-    await bucket.upload(file.path, {
-      destination: destination,
-    });
+    const uploadedUrls = [];
+    for (const file of files) {
+      const destination = `surveyor_answer/${Date.now()}-${file.originalname}`;
+      await bucket.upload(file.path, { destination });
 
-    if (fs.existsSync(file.path)) {
-      fs.unlink(file.path, (err) => {
-        if (err) console.error("Error deleting local file:", err);
-        else console.log(`File ${file.path} deleted locally`);
-      });
+      if (fs.existsSync(file.path)) {
+        fs.unlink(file.path, (err) => {
+          if (err) console.error("Error deleting local file:", err);
+          else console.log(`File ${file.path} deleted locally`);
+        });
+      }
+
+      const fileUrl = await exports.getSignedUrlForever(destination);
+      uploadedUrls.push(fileUrl);
     }
-
-    const fileUrl = await exports.getSignedUrlForever(destination);
-    return fileUrl;
-
+    return uploadedUrls; // Mengembalikan array URL
   } catch (error) {
-    console.error('Error uploading file surveyor answer to Google Cloud Storage:', error);
+    console.error('Error uploading file:', error);
     throw new Error('Failed to upload file');
   }
-}
-
-
+};
 
 
 //mendapatkan nama file

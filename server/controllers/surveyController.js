@@ -435,10 +435,10 @@ exports.submitSurveyorAnswer = async(req,res) =>{
       if (["diterima", "dikerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
-          INSERT INTO luaran_survey (survey_id, file)  
-          VALUES ${uploadedFiles.map((_, i) => `($1, $${i + 2})`).join(", ")}
-          RETURNING *;
-        `;
+         INSERT INTO luaran_survey (survey_id, file)  
+         VALUES ${uploadedFiles.map((_, i) => `($1, $${i + 2})`).join(", ")}
+         RETURNING *;
+        `;      
         const values = [id_luaran, ...uploadedFiles];
         const result = await query(queryText, values);
         res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows });
