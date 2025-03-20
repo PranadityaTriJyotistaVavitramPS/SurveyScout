@@ -422,7 +422,7 @@ exports.submitSurveyorAnswer = async(req,res) =>{
   const files = req.files;
   try {
     //pertama check dulu identitas valid apa ngga ? boleh ngga dia ngisi/ ngelihat jawaban
-    const checkCandidateStatus = await query(`SELECT status FROM survey_application WHERE id_surveyor = $1 AND id_survey =$2`,[id_surveyor,id_survey])
+    const checkCandidateStatus = await query(`SELECT status FROM surveyor_application WHERE id_surveyor = $1 AND id_survey =$2`,[id_surveyor,id_survey])
     const status = checkCandidateStatus.rows[0].status;
 
     if (["ditolak","pending"].includes(status)) {
