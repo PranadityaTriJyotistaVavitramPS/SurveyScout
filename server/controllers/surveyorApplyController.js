@@ -35,6 +35,9 @@ exports.surveyorWorker = async(req,res) => {
         const candidateInfo = await Promise.all(
             candidateResult.map(async (candidate) => {
                 const {id_surveyor} = candidate;
+                const status = await query(`
+                    SELECT status FROM surveyor_application WHERE id_surveyor=$1 AND id_survey=$2
+                `,[id_surveyor,id_survey])
                 
                 const info = await query(`
                     SELECT id_surveyor,nama_lengkap, scout_trust, profile_picture, cv_ats 
@@ -47,6 +50,7 @@ exports.surveyorWorker = async(req,res) => {
                     scout_trust: info.rows[0].scout_trust,
                     profile_picture: info.rows[0].profile_picture,
                     cv_ats: info.rows[0].cv_ats,
+                    status_penerimaan:status.rows[0].status
                 };
             })
         )
