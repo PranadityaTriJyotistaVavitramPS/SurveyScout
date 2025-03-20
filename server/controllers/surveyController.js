@@ -384,20 +384,63 @@ const trackDeadlineStatus = (time) =>{
     }
 }
 
-//menampilkan jawaban
-
 //surveyor melihat projek yang mereka daftar
 exports.surveyorProjects = async(req,res) =>{
   const{id_surveyor} = req.body
   try {
-    const checkSurveyorProj = await query(`SELECT id_survey FROM surveyor_application WHERE id_surveyor = $1`,[id_surveyor])
-    
-  } catch (error) {
-    
-  }
-  //cek dulu dimana aja sih surveyor mendaftar
-  //kita pakai map buat nampilin detail surveynya + status dari surveyor_application buat nampilin status
+    //check dimana aja surveyor daftar
+    const checkSurveyorProject = await query(`
+      SELECT id_survey 
+      FROM surveyor_application 
+      WHERE id_surveyor = $1`
+    ,[id_surveyor])
+    const projects = checkSurveyorProject.rows
+    if(projects.length === 0){
+      return res.status(404).json({
+        message:"surveyor belum mendaftar project"
+      })
+    }
+    //dari projek yang didaftar dapatkan detail card(id_survey, nama_proyek, lokasi,kompensasi,status_surveyor)
+    const projectCardDetail = await Promise.all(
+      projects.map(async(project)=>{
+        const{id_survey} = project;
 
+        const info = await query(`
+          SELECT id_survey,nama_proyek,lokasi,kompensasi,status_surveyor,tenggat_pengerjaan
+          FROM survey_table 
+          WHERE id_survey =$1
+        `,[id_survey])
+        
+        const{tenggat_pengerjaan} = info.rows[0]
+        const deadline_status = trackDeadlineStatus(tenggat_pengerjaan);
+        if(deadline_status){
+          await query(`
+            UPDATE survey_table
+            SET status_surveyor="deadline"
+            WHERE id_survey =$1  
+          `,[id_survey])
+        }
+        return {
+          id_survey:info.rows[0].id_survey,
+          nama_proyek:info.rows[0].nama_proyek,
+          lokasi:info.rows[0].lokasi,
+          status_surveyor:info.rows[0].status_surveyor
+        };
+      })
+    )
+
+    res.status(200).json({
+      message:"success",
+      data:{
+        projectCardDetail
+      }
+    })
+  } catch (error) {
+      console.error("Error ketika melakukan fetching cardDetail pada Projec Surveyor",error);
+      res.status(500).json({
+        message:"Internal Server Error"
+      })
+  }
 }
 
 
@@ -455,7 +498,13 @@ exports.submitSurveyorAnswer = async(req,res) =>{
         const result = await query(queryText, values);
         res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows });
       }
-  } 
+    } 
+    await query(`
+      UPDATE survey_table
+      SET status_surveyor = 'ditinjau'
+      WHERE id_survey =$1  
+    `,[id_survey])
+
   } catch (error) {
       console.error("Error ketika mengupload jawaban Surveyor",error)
       res.status(500).json({message:"Internal Server Error"})
@@ -463,4 +512,12 @@ exports.submitSurveyorAnswer = async(req,res) =>{
 }
 
 
+//menampilkan jawaban surveyor yang telah dikumpulkan
+exports.showSurveyorAnswer = async(req,res)=>{
+  
+
+}
+
+//menerima jawaban surveyor
+//meminta surveyor revisi
 

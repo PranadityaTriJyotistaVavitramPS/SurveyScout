@@ -105,6 +105,11 @@ exports.accSurveyor = async(req,res) =>{
                 WHERE id_surveyor = $1 AND id_survey = $2
             `, [id_surveyor, id_survey]);
         }
+        await query(`
+            UPDATE survey_table 
+            SET status_surveyor = 'mengerjakan' 
+            WHERE id_survey =$1`,
+        [id_survey])
         res.status(200).json({
             message:"success"
         })
@@ -124,6 +129,12 @@ exports.rejSurveyor = async(req,res) =>{
             SET status = 'ditolak'
             WHERE id_surveyor =$1 AND id_survey =$2`,
         [id_surveyor,id_survey])
+
+        await query(`
+            UPDATE survey_table 
+            SET status_surveyor ='ditolak'
+            WHERE id_survey =$1`,
+        [id_survey])
 
         res.status(200).json({
             message:"berhasil menolak"
