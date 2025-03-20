@@ -4,11 +4,14 @@ const {query} = require('../db/index');
 exports.applyToSurvey = async(req,res) =>{
     const {id_surveyor, id_survey} = req.body
     try {
-        const apply = await query(`INSERT INTO surveyor_application (id_surveyor, id_survey) VALUES ($1,$2) RETURNING *`,[id_surveyor,id_survey])
-        res.status(201).json({
-            message:"sukses mendaftar",
-            data:apply.rows[0]
-        })
+        const checkStatus = await query(`SELECT status_task FROM survey_table WHERE id_survey =$1`,[id_survey])
+        if(checkStatus[0].status_task){
+            const apply = await query(`INSERT INTO surveyor_application (id_surveyor, id_survey) VALUES ($1,$2) RETURNING *`,[id_surveyor,id_survey])
+            res.status(201).json({
+                message:"sukses mendaftar",
+                data:apply.rows[0]
+            })
+        }
     } catch (error) {
         console.error("Error saat surveyor mendaftar suatu survey:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -19,14 +22,13 @@ exports.applyToSurvey = async(req,res) =>{
 //menampilkan pendaftar suatu project survey
 exports.surveyorWorker = async(req,res) => {
     const{id_survey} = req.body
-    console.log(id_survey)
     try {
         //ambil siapa aja yang daftar di survey ini
         const projectCandidate = await query(`
             SELECT id_surveyor 
             FROM surveyor_application 
             WHERE id_survey = $1 
-            AND status ='pending' OR status='diterima'`,[id_survey])
+            AND (status ='pending' OR status='diterima')`,[id_survey])
         const candidateResult = projectCandidate.rows
         const jumlah_candidate = candidateResult.length
         //dari yang daftar ambil data id_surveyor,scout_trust, profile_picture,cv_ats
@@ -69,7 +71,7 @@ exports.accSurveyor = async(req,res) =>{
     const{id_surveyor,id_survey} = req.body
     try {
         //cek terlebih dahulu ada berapa yang daftar
-        const checkCandidate = await query(`SELECT * FROM surveyor_application WHERE id_surveyor =$1 & id_survey=$2`,[id_surveyor,id_survey])
+        const checkCandidate = await query(`SELECT * FROM surveyor_application WHERE id_surveyor =$1 AND id_survey=$2`,[id_surveyor,id_survey])
         const jumlah_candidate = checkCandidate.rows.length;
         //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
         if(jumlah_candidate > 1){
@@ -131,6 +133,8 @@ exports.rejSurveyor = async(req,res) =>{
         
     }
 }
+
+
 
 
 
