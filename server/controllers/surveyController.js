@@ -464,12 +464,3 @@ exports.submitSurveyorAnswer = async(req,res) =>{
 
 
 
-//ajuan revisi jawaban projek survey
-exports.revisiSurvey = async(req,res) =>{
-  //1 aku ngambil id_surveynya dulu
-  //2 bikin query dimana dia:
-  //2.1 update status_revisi menjadi false
-  //2.2 update deadline 
-  //ngehapus jawaban pada id_luaran dari survey
-  //status_task survey jadi dikerjakan
-}
