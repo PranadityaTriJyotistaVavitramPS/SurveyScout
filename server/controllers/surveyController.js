@@ -418,8 +418,7 @@ exports.uploadAnswers = upload.array('file');
 
 //mengumpulkan jawaban (sisi surveyor)
 exports.submitSurveyorAnswer = async(req,res) =>{
-  const{id_survey} = req.body;
-  const id_surveyor = req.user;
+  const{id_survey, id_surveyor} = req.body;
   const files = req.files;
   try {
     //pertama check dulu identitas valid apa ngga ? boleh ngga dia ngisi/ ngelihat jawaban
