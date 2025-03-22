@@ -99,7 +99,7 @@ exports.createRespondPayment = async(req,res) =>{
         // Check if payment with the same order_id and 'failed' status exists
         const checkOrderId = await query(`SELECT * FROM payment_table WHERE order_id = $1 AND status_payment = 'failed'`, [order_id]);
         let end_order_id = '';
-        console.log("ini order_id nya",end_order_id)
+        
         if (checkOrderId.rows.length === 1) {
             const new_order_id = `SURVEY-${Date.now()}`;
             end_order_id = new_order_id;
@@ -125,7 +125,7 @@ exports.createRespondPayment = async(req,res) =>{
             isProduction: false,
             serverKey: process.env.MIDTRANS_SERVER_KEY
         });
-
+        console.log("ini order_id nya",end_order_id)
         let parameter = {
             "transaction_details": {
                 'order_id': end_order_id,
@@ -144,7 +144,7 @@ exports.createRespondPayment = async(req,res) =>{
 
         res.status(201).json({
             message: "Pembayaran berhasil dibuat",
-            order_id: transaction.order_id,
+            order_id: end_order_id,
             snap_url: transaction.redirect_url,
             token:transaction.token
         });
