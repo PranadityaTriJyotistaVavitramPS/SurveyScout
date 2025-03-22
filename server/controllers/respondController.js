@@ -101,7 +101,7 @@ exports.createRespondPayment = async(req,res) =>{
         let end_order_id = '';
         
         if (checkOrderId.rows.length === 1) {
-            const new_order_id = `SURVEY-${Date.now()}`;
+            const new_order_id = `RESPOND-${Date.now()}`;
             end_order_id = new_order_id;
             
             await query(`UPDATE respond_draft_table SET order_id = $1 WHERE order_id = $2`, [new_order_id, order_id]);
