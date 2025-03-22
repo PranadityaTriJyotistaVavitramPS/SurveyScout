@@ -5,6 +5,11 @@ exports.applyToSurvey = async(req,res) =>{
     const {id_surveyor, id_survey} = req.body
     try {
         const checkStatus = await query(`SELECT status_task FROM survey_table WHERE id_survey =$1`,[id_survey])
+        await query(`
+            UPDATE survey_table 
+            SET status_surveyor ='mendaftar'
+            WHERE id_survey =$1`,
+        [id_survey])
         if(checkStatus[0].status_task){
             const apply = await query(`INSERT INTO surveyor_application (id_surveyor, id_survey) VALUES ($1,$2) RETURNING *`,[id_surveyor,id_survey])
             res.status(201).json({
