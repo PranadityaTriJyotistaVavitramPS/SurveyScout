@@ -626,3 +626,25 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
   }
 }
 
+exports.getSurveyDetail = async (req, res) => {
+  const { id_survey } = req.params;
+  
+  try {
+      const result = await query(`SELECT * FROM survey_table WHERE id_survey = $1`, [id_survey]);
+      if (result.rows.length === 0) {
+          return res.status(404).json({
+              message: "Survey tidak ditemukan"
+          });
+      }
+      res.status(200).json({
+          message: "Success",
+          data: result.rows[0]
+      });
+  } catch (error) {
+      console.error("Error saat mengambil survey detail:", error.message);
+      
+      res.status(500).json({
+          message: "Internal Server Error"
+      });
+  }
+};
