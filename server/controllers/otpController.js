@@ -49,6 +49,35 @@ const transporter = nodemailer.createTransport({
 });
 
 
+exports.sendNotificationtoAdmin = async (id_survey,nama_lengkap,kompensasi,nama_bank,email,nomor_rekening) => {
+  try {
+    // Validasi input
+    if (!nama_lengkap || !kompensasi || !nama_bank || !id_survey || !email||!nomor_rekening) {
+      throw new Error("Semua data transaksi harus diisi!");
+    }
+
+    // Konfigurasi email
+    const mailOptions = {
+      from: `"Survey Scout" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: "Konfirmasi Transaksi Survey",
+      html: `
+      <p>Tenaga Kerja Atas Nama:<strong>${nama_lengkap}</strong>, telah menyelesaikan projek dengan ID <strong>${id_survey}</strong>.</p>
+      <p>dengan kompensasi sebesar <strong>Rp${kompensasi}</strong> </p>
+      <p>nomor rekening penerima: <strong>${nomor_rekening}-${nama_bank}</strong>.</p>
+      <br>
+      <p>Mohon untuk segera melakukan Transfer ke Rekening Tersebut</p>
+    `,
+    };
+
+    // Kirim email
+    const info = await transporter.sendMail(mailOptions);
+    
+    return { success: true, message: "Email berhasil dikirim", info };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+};
 
 
 // Controller: Generate OTP

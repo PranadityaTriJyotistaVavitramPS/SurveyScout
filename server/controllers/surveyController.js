@@ -5,6 +5,7 @@ require('moment/locale/id');
 moment.locale('id');
 multer = require('multer');
 const {uploadSurveyorAnswer} = require('./uploadFile')
+const {sendNotificationtoAdmin} = require('./otpController')
 
 
 //memasukkan task yang telah dibuat ke draft (belum dilakukan pembayaran)
@@ -522,9 +523,10 @@ exports.showSurveyorAnswer = async(req,res)=>{
     const{id_luaran} = target;
 
     const surveyQueryAnswer = await query(`
-      SELECT * 
-      FROM luaran_table 
-      WHERE survey_id =$1 AND status='pending'`
+     SELECT * 
+        FROM luaran_table 
+        WHERE survey_id = $1 
+        AND status IN ('pending', 'selesai')`
     ,[id_luaran]);
 
     res.status(200).json({
@@ -546,7 +548,15 @@ exports.accSurveyorAnswer = async(req,res) =>{
   try {
     //cari id_luaran
     const infoSurvey = await query(`SELECT id_luaran,kompensasi,id_survey FROM survey_table WHERE id_survey =$1`,[id_survey])
-    const {id_luaran} = targetLuaran.rows[0]
+    const {id_luaran} = infoSurvey.rows[0]
+    const targetSurveyor = await query(`
+      SELECT id_surveyor 
+      FROM surveyor_application
+      WHERE id_survey =$1`,
+    [id_survey])
+
+    const infoSurveyor = targetSurveyor.rows[0]
+    
     //ubah seluruh status jawaban di luaran_survey, menjadi selesai
     await query(`UPDATE luaran_survey SET status = 'selesai' WHERE survey_id = $1`,[id_luaran])
     //ubah status_surveyor dan status_task = selesai
@@ -558,8 +568,7 @@ exports.accSurveyorAnswer = async(req,res) =>{
     ,[id_survey])
 
     //panggil fungsi yang memberi notifikasi ke admin mengenai jumlah kompensasi, nomor rekening, nama_bank
-
-    
+    sendNotificationtoAdmin(id_survey, infoSurveyor.nama_lengkap, infoSurveyor.kompensasi, infoSurveyor.nama_bank, infoSurveyor.email, infoSurveyor.nomor_rekening)
   } catch (error) {
     console.error("Error ketike menerima jawaban surveyor",error);
     res.status(500).json({
