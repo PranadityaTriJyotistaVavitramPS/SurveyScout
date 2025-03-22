@@ -8,7 +8,8 @@ moment.locale('id');
 exports.createRespondDraft = async(req,res) =>{
     const{nama_proyek,deskripsi_proyek, tenggat_pengerjaan, 
         lokasi, kompensasi, metode_survey, 
-        keahlian, jumlah_responden, tugas, tenggat_pendaftaran, rentang_usia,hobi
+        keahlian, jumlah_responden, tugas, tenggat_pendaftaran, rentang_usia,hobi,pendidikan, pekerjaan, status_perkawinan, 
+        lokasi_responden
     } = req.body
 
     console.log(req.body)
@@ -29,11 +30,29 @@ exports.createRespondDraft = async(req,res) =>{
         const hobiArray = Array.isArray(hobi) ? hobi : hobi.split(",");
         //memasukkan ke draft respond
         const draft = await query(`INSERT INTO respond_draft_table 
-            (id_client,nama_proyek,deskripsi_proyek, tenggat_pengerjaan, lokasi, kompensasi, metode_survey, status, keahlian,
-            jumlah_responden,order_id,status_task,tenggat_pendaftaran,tugas,rentang_usia,hobi) 
-            VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,'draft',$11,$12,$13::INTEGER[],$14::VARCHAR[]) RETURNING *
+            (id_client,
+            nama_proyek,
+            deskripsi_proyek, 
+            tenggat_pengerjaan, 
+            lokasi, 
+            kompensasi, 
+            metode_survey, 
+            status, 
+            keahlian,
+            jumlah_responden,
+            order_id,
+            status_task,
+            tenggat_pendaftaran,
+            tugas,
+            rentang_usia,
+            hobi,
+            pendidikan,
+            pekerjaan,
+            status_perkawinan,
+            lokasi_responden) 
+            VALUES ($1,$2,$3,$4,$5,$6,$7,'pending',$8,$9,$10,'draft',$11,$12,$13::INTEGER[],$14::VARCHAR[],$15,$16,$17,$18) RETURNING *
         `,[id_client,nama_proyek,deskripsi_proyek,formattedPengerjaanDate,lokasi,kompensasi,metode_survey,keahlian,
-            jumlah_responden,order_id,formattedPendaftaranDate,tugas,usiaArray,hobiArray
+            jumlah_responden,order_id,formattedPendaftaranDate,tugas,usiaArray,hobiArray,pendidikan,pekerjaan,status_perkawinan,lokasi_responden
         ])
 
         res.status(201).json({
@@ -154,13 +173,15 @@ exports.moveDraftToRespond = async(order_id) =>{
         await query(`
             INSERT INTO respond_table 
             (id_client, nama_proyek, deskripsi_proyek, tenggat_pengerjaan, lokasi, 
-            metode_survey,keahlian, kompensasi,jumlah_responden,order_id,tenggat_pendaftaran,tugas,rentang_usia,hobi)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *
+            metode_survey,keahlian, kompensasi,jumlah_responden,order_id,tenggat_pendaftaran,tugas,rentang_usia,hobi,
+            pekerjaan,status_perkawinan,pendidikan,lokasi_responden)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *
         `,[
             draft.id_client, draft.nama_proyek, draft.deskripsi_proyek, 
             draft.tenggat_pengerjaan, draft.lokasi, draft.metode_survey, 
             draft.keahlian, draft.kompensasi,draft.jumlah_responden,draft.order_id,
-            draft.tenggat_pendaftaran,draft.tugas,draft.rentang_usia,draft.hobi
+            draft.tenggat_pendaftaran,draft.tugas,draft.rentang_usia,draft.hobi,
+            draft.pekerjaan,draft.status_perkawinan,draft.pendidikan,draft.lokasi_responden
         ]);
 
         //Hapus dari `survey_draft_table`

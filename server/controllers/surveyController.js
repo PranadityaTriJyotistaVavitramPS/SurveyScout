@@ -512,12 +512,62 @@ exports.submitSurveyorAnswer = async(req,res) =>{
 }
 
 
-//menampilkan jawaban surveyor yang telah dikumpulkan
+//menampilkan jawaban surveyor yang telah dikumpulkan(sisi client)
 exports.showSurveyorAnswer = async(req,res)=>{
-  
+  const{id_survey} = req.body;
+  try {
+    //cek seluruh tabel luaran_survey yang memiliki status pending
+    const targetTabel = await query(`SELECT id_luaran FROM survey_table WHERE id_survey =$1`,[id_survey])
+    const target= targetTabel.rows[0];
+    const{id_luaran} = target;
 
+    const surveyQueryAnswer = await query(`
+      SELECT * 
+      FROM luaran_table 
+      WHERE survey_id =$1 AND status='pending'`
+    ,[id_luaran]);
+
+    res.status(200).json({
+      message:"success",
+      data:surveyQueryAnswer.rows
+    })
+
+  } catch (error) {
+     console.error("Error ketika menampilkan jawaban surveyor",error)
+     res.status(500).json({
+      message:"Internal Server Error"
+     }) 
+  }
 }
 
 //menerima jawaban surveyor
+exports.accSurveyorAnswer = async(req,res) =>{
+  const{id_survey} = req.body
+  try {
+    //cari id_luaran
+    const infoSurvey = await query(`SELECT id_luaran,kompensasi,id_survey FROM survey_table WHERE id_survey =$1`,[id_survey])
+    const {id_luaran} = targetLuaran.rows[0]
+    //ubah seluruh status jawaban di luaran_survey, menjadi selesai
+    await query(`UPDATE luaran_survey SET status = 'selesai' WHERE survey_id = $1`,[id_luaran])
+    //ubah status_surveyor dan status_task = selesai
+    await query(`
+      UPDATE survey_table 
+      SET (status_surveyor,status_task) 
+      VALUES ('selesai','selesai') 
+      WHERE id_survey =$1 RETURNING *`
+    ,[id_survey])
+
+    //panggil fungsi yang memberi notifikasi ke admin mengenai jumlah kompensasi, nomor rekening, nama_ban
+
+    
+  } catch (error) {
+    
+  }
+  
+}
+
 //meminta surveyor revisi
+  exports.revisiSurveyorAnswer = async(req,res) =>{
+
+}
 
