@@ -557,17 +557,63 @@ exports.accSurveyorAnswer = async(req,res) =>{
       WHERE id_survey =$1 RETURNING *`
     ,[id_survey])
 
-    //panggil fungsi yang memberi notifikasi ke admin mengenai jumlah kompensasi, nomor rekening, nama_ban
+    //panggil fungsi yang memberi notifikasi ke admin mengenai jumlah kompensasi, nomor rekening, nama_bank
 
     
   } catch (error) {
-    
-  }
-  
+    console.error("Error ketike menerima jawaban surveyor",error);
+    res.status(500).json({
+      message:"Internal Server Error"
+    }) 
+  } 
 }
 
 //meminta surveyor revisi
-  exports.revisiSurveyorAnswer = async(req,res) =>{
+exports.revisiSurveyorAnswer = async(req,res) =>{
+  //inputnnya bakalan dapet id_survey, dari id_luaran sekalian
+  const {id_survey, tenggat_pengerjaan, task_revisi} = req.body
+  try {
+    const outputTarget = await query(`SELECT id_luaran,status_revisi FROM survey_table WHERE id_survey =$1`,[id_survey])
+    const {id_luaran,status_revisi} = outputTarget.rows[0]
 
+    if(status_revisi == false){
+      //update status_revisi = true, tenggat_pengerjaan, status_task = dikerjakan, status_surveyor
+      await query(`
+        UPDATE survey_table 
+        SET status_revisi = 'true',
+            tenggat_pengerjaan = $1,
+            status_task = 'dikerjakan',
+            status_surveyor = 'mengerjakan'
+        RETURNING *
+      `, [tenggat_pengerjaan]);
+  
+      //insert data tugas_baru
+      await query(
+        `UPDATE survey_table 
+        SET task_revisi =$1
+        WHERE id_survey =$2`,
+      [task_revisi,id_survey]);
+  
+      //update status jawaban luarn menjadi revisi
+      await query(`UPDATE luaran_survey SET status ='revisi' WHERE id_luaran = $1`,[id_luaran])
+
+      res.status(200).json({
+        status:"1",
+        message:"berhasil mengajukan revisi",
+        data_revisi:task_revisi
+      })
+
+    }else{
+      return res.status(400).json({
+        status:"0",
+        message:"tidak bisa melakukan revisi"
+      })
+    }
+  } catch (error) {
+    console.error("Error ketika mengajukan revisi Surveyor",error);
+    return res.status(500).json({
+      message:"Internal Server Error"
+    })
+  }
 }
 
