@@ -417,7 +417,7 @@ exports.surveyorProjects = async(req,res) =>{
         if(deadline_status){
           await query(`
             UPDATE survey_table
-            SET status_surveyor="deadline"
+            SET status_surveyor = 'deadline'
             WHERE id_survey =$1  
           `,[id_survey])
         }
