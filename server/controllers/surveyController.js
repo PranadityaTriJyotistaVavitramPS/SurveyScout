@@ -401,31 +401,37 @@ exports.surveyorProjects = async(req,res) =>{
         message:"surveyor belum mendaftar project"
       })
     }
-    //dari projek yang didaftar dapatkan detail card(id_survey, nama_proyek, lokasi,kompensasi,status_surveyor)
+    
     const projectCardDetail = await Promise.all(
       projects.map(async(project)=>{
         const{id_survey} = project;
 
-        const info = await query(`
-          SELECT id_survey,nama_proyek,lokasi,kompensasi,status_surveyor,tenggat_pengerjaan
+        const infoSurvey = await query(`
+          SELECT id_survey,nama_proyek,lokasi,kompensasi,tenggat_pengerjaan
           FROM survey_table 
           WHERE id_survey =$1
         `,[id_survey])
+
+        const infoSurveyApplication = await query(`
+          SELECT status
+          FROM surveyor_application
+          WHERE id_surveyor =$1 AND id_survey=$2
+        `,[id_survey,id_surveyor])
         
-        const{tenggat_pengerjaan} = info.rows[0]
+        const{tenggat_pengerjaan} = infoSurvey.rows[0]
         const deadline_status = trackDeadlineStatus(tenggat_pengerjaan);
         if(deadline_status){
           await query(`
-            UPDATE survey_table
-            SET status_surveyor = 'deadline'
+            UPDATE survey_application
+            SET status = 'deadline'
             WHERE id_survey =$1  
           `,[id_survey])
         }
         return {
-          id_survey:info.rows[0].id_survey,
-          nama_proyek:info.rows[0].nama_proyek,
-          lokasi:info.rows[0].lokasi,
-          status_surveyor:info.rows[0].status_surveyor,
+          id_survey:infoSurvey.rows[0].id_survey,
+          nama_proyek:infoSurvey.rows[0].nama_proyek,
+          lokasi:infoSurvey.rows[0].lokasi,
+          status_surveyor:infoSurveyApplication.rows[0].status,
           tenggat_pengerjaan:tenggat_pengerjaan
         };
       })
@@ -502,10 +508,10 @@ exports.submitSurveyorAnswer = async(req,res) =>{
       }
     } 
     await query(`
-      UPDATE survey_table
-      SET status_surveyor = 'ditinjau'
-      WHERE id_survey =$1  
-    `,[id_survey])
+      UPDATE surveyor_application
+      SET status = 'ditinjau'
+      WHERE id_survey =$1 AND id_surveyor =$2 
+    `,[id_survey,id_surveyor])
 
   } catch (error) {
       console.error("Error ketika mengupload jawaban Surveyor",error)
@@ -557,16 +563,24 @@ exports.accSurveyorAnswer = async(req,res) =>{
     [id_survey])
 
     const infoSurveyor = targetSurveyor.rows[0]
+    const {id_surveyor} = targetSurveyor.rows[0]
     
     //ubah seluruh status jawaban di luaran_survey, menjadi selesai
     await query(`UPDATE luaran_survey SET status = 'selesai' WHERE survey_id = $1`,[id_luaran])
-    //ubah status_surveyor dan status_task = selesai
+
+    //ubah status pada surveyor_application dan status_task = selesai
+    await query(`
+      UPDATE surveyor_application
+      SET status = 'selesai'
+      WHERE id_survey =$1 AND id_surveyor = $2
+      RETURNING *`
+    ,[id_survey,id_surveyor])
+
     await query(`
       UPDATE survey_table 
-      SET (status_surveyor,status_task) 
-      VALUES ('selesai','selesai') 
-      WHERE id_survey =$1 RETURNING *`
-    ,[id_survey])
+      SET status_task ='selesai'
+      WHERE id_survey =$1  
+    `,[id_survey])
 
     //panggil fungsi yang memberi notifikasi ke admin mengenai jumlah kompensasi, nomor rekening, nama_bank
     sendNotificationtoAdmin(id_survey, infoSurveyor.nama_lengkap, infoSurveyor.kompensasi, infoSurveyor.nama_bank, infoSurveyor.email, infoSurveyor.nomor_rekening)
@@ -587,15 +601,21 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
     const {id_luaran,status_revisi} = outputTarget.rows[0]
 
     if(status_revisi == false){
-      //update status_revisi = true, tenggat_pengerjaan, status_task = dikerjakan, status_surveyor
+      //update status_revisi = true, tenggat_pengerjaan, status_task = dikerjakan, status = mengerjakan
       await query(`
         UPDATE survey_table 
         SET status_revisi = 'true',
             tenggat_pengerjaan = $1,
             status_task = 'dikerjakan',
-            status_surveyor = 'mengerjakan'
         RETURNING *
       `, [tenggat_pengerjaan]);
+
+      await query(`
+        UPDATE surveyor_application
+        SET status = 'mengerjakan'
+        WHERE id_survey = $1
+        RETURNING *
+      `,[id_survey])
   
       //insert data tugas_baru
       await query(
@@ -612,7 +632,6 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
         message:"berhasil mengajukan revisi",
         data_revisi:task_revisi
       })
-
     }else{
       return res.status(400).json({
         status:"0",

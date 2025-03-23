@@ -5,23 +5,16 @@ exports.applyToSurvey = async(req,res) =>{
     const {id_survey} = req.params;
     const id_surveyor = req.user.id_user;
     try {
-        const checkStatus = await query(`SELECT status_task,status_surveyor FROM survey_table WHERE id_survey =$1 AND status_task ='merekrut'`,[id_survey])
+        const checkStatus = await query(`SELECT status_task FROM survey_table WHERE id_survey =$1 AND status_task ='merekrut'`,[id_survey])
         if (checkStatus.rows.length === 0) {
             return res.status(404).json({ message: "Survey tidak ditemukan" });
         }
-        const { status_task, status_surveyor } = checkStatus.rows[0];
+        const { status_task } = checkStatus.rows[0];
         if (status_task !== "merekrut") {
             return res.status(400).json({ message: "Survey tidak dalam tahap perekrutan" });
         }
         if(status_task=='merekrut'){
-            if(status_surveyor =='ready'){
-                await query(`
-                    UPDATE survey_table 
-                    SET status_surveyor ='mendaftar'
-                    WHERE id_survey =$1`,
-                [id_survey])
-            }
-
+            //mendaftar pada status
             const apply = await query(`INSERT INTO surveyor_application (id_surveyor, id_survey) VALUES ($1,$2) RETURNING *`,[id_surveyor,id_survey])
             res.status(201).json({
                 message:"sukses mendaftar",
@@ -44,7 +37,7 @@ exports.surveyorWorker = async(req,res) => {
             SELECT id_surveyor 
             FROM surveyor_application 
             WHERE id_survey = $1 
-            AND (status ='pending' OR status='diterima')`,[id_survey])
+            AND (status ='mendaftar' OR status='mengerjakan')`,[id_survey])
         const candidateResult = projectCandidate.rows
         const jumlah_candidate = candidateResult.length
         //dari yang daftar ambil data id_surveyor,scout_trust, profile_picture,cv_ats
@@ -117,15 +110,10 @@ exports.accSurveyor = async(req,res) =>{
         } else {
             await query(`
                 UPDATE surveyor_application 
-                SET status = 'diterima' 
-                WHERE id_surveyor = $1 AND id_survey = $2
-            `, [id_surveyor, id_survey]);
+                SET status = 'mengerjakan' 
+                WHERE id_survey =$1 AND id_surveyor =$2`,
+            [id_survey,id_surveyor])
         }
-        await query(`
-            UPDATE survey_table 
-            SET status_surveyor = 'mengerjakan' 
-            WHERE id_survey =$1`,
-        [id_survey])
         res.status(200).json({
             message:"success"
         })
@@ -145,12 +133,6 @@ exports.rejSurveyor = async(req,res) =>{
             SET status = 'ditolak'
             WHERE id_surveyor =$1 AND id_survey =$2`,
         [id_surveyor,id_survey])
-
-        await query(`
-            UPDATE survey_table 
-            SET status_surveyor ='ditolak'
-            WHERE id_survey =$1`,
-        [id_survey])
 
         res.status(200).json({
             message:"berhasil menolak"
