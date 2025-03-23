@@ -426,7 +426,7 @@ exports.surveyorProjects = async(req,res) =>{
           nama_proyek:info.rows[0].nama_proyek,
           lokasi:info.rows[0].lokasi,
           status_surveyor:info.rows[0].status_surveyor,
-          tenggat_pengerjaan:formatDeadlineWordOnly(tenggat_pengerjaan)
+          tenggat_pengerjaan:tenggat_pengerjaan
         };
       })
     )
