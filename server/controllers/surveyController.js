@@ -312,7 +312,7 @@ function formatCreatedAt(timeline) {
 //menampilkan seluruh task(Scouting Survey)
 exports.getAllSurveyTask = async(req,res) =>{
     try {
-        const result = await query(`SELECT * FROM survey_table`);
+        const result = await query(`SELECT * FROM survey_table WHERE status_task = 'merekrut'`);
         if(result.rows.length === 0){
             return res.status(404).json({
                 message:"no survey task found"

@@ -88,10 +88,10 @@ exports.accSurveyor = async(req,res) =>{
         const jumlah_candidate = checkCandidate.rows.length;
         //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
         if(jumlah_candidate > 1){
-            const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'diterima');
+            const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
             
             if(acceptedCandidate){
-                const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'diterima');
+                const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'mengerjakan');
                 for(const candidate of rejectedCandidate){
                     await query(`
                         UPDATE surveyor_application 
@@ -102,7 +102,7 @@ exports.accSurveyor = async(req,res) =>{
             } else {
                 await query(`
                     UPDATE surveyor_application 
-                    SET status = 'diterima' 
+                    SET status = 'mengerjakan' 
                     WHERE id_surveyor = $1 AND id_survey = $2
                 `, [id_surveyor, id_survey]);
             }
@@ -114,6 +114,12 @@ exports.accSurveyor = async(req,res) =>{
                 WHERE id_survey =$1 AND id_surveyor =$2`,
             [id_survey,id_surveyor])
         }
+        await query(`
+            UPDATE survey_table 
+            SET status_task='dikerjakan'
+            WHERE id_survey =$1
+        `,[id_survey])
+
         res.status(200).json({
             message:"success"
         })
