@@ -2,15 +2,26 @@ const {query} = require('../db/index');
 
 //mendaftar suatu survey
 exports.applyToSurvey = async(req,res) =>{
-    const {id_surveyor, id_survey} = req.body
+    const {id_survey} = req.params
+    const {id_surveyor} = req.file
     try {
-        const checkStatus = await query(`SELECT status_task FROM survey_table WHERE id_survey =$1`,[id_survey])
-        await query(`
-            UPDATE survey_table 
-            SET status_surveyor ='mendaftar'
-            WHERE id_survey =$1`,
-        [id_survey])
-        if(checkStatus[0].status_task){
+        const checkStatus = await query(`SELECT status_task,status_surveyor FROM survey_table WHERE id_survey =$1 AND status_task ='merekrut'`,[id_survey])
+        if (checkStatus.rows.length === 0) {
+            return res.status(404).json({ message: "Survey tidak ditemukan" });
+        }
+        const { status_task, status_surveyor } = checkStatus.rows[0];
+        if (status_task !== "merekrut") {
+            return res.status(400).json({ message: "Survey tidak dalam tahap perekrutan" });
+        }
+        if(status_task=='merekrut'){
+            if(status_surveyor =='ready'){
+                await query(`
+                    UPDATE survey_table 
+                    SET status_surveyor ='mendaftar'
+                    WHERE id_survey =$1`,
+                [id_survey])
+            }
+
             const apply = await query(`INSERT INTO surveyor_application (id_surveyor, id_survey) VALUES ($1,$2) RETURNING *`,[id_surveyor,id_survey])
             res.status(201).json({
                 message:"sukses mendaftar",
