@@ -416,7 +416,7 @@ exports.surveyorProjects = async(req,res) =>{
           SELECT status
           FROM surveyor_application
           WHERE id_surveyor =$1 AND id_survey=$2
-        `,[id_survey,id_surveyor])
+        `,[id_surveyor,id_survey])
         
         const{tenggat_pengerjaan} = infoSurvey.rows[0]
         const deadline_status = trackDeadlineStatus(tenggat_pengerjaan);
