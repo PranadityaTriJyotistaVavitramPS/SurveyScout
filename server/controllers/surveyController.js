@@ -643,12 +643,13 @@ exports.getSurveyDetail = async (req, res) => {
       const surveyDetail = result.rows[0];
 
       // Format tanggal tenggat_pengerjaan
-      const formattedDate = formatDeadline(surveyDetail.tenggat_pengerjaan);
+      const formattedDateDeadline = formatDeadline(surveyDetail.tenggat_pengerjaan);
+      const formattedDateCreatedAt = formatCreatedAt(surveyDetail.created_at)
 
       // Kirim response
       res.status(200).json({
           message: "Success",
-          data: { ...surveyDetail, tenggat_pengerjaan: formattedDate } // Menggunakan spread dengan benar
+          data: { ...surveyDetail, tenggat_pengerjaan: formattedDateDeadline, created_at:formattedDateCreatedAt} // Menggunakan spread dengan benar
       });
 
   } catch (error) {
