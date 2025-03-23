@@ -2,8 +2,8 @@ const {query} = require('../db/index');
 
 //mendaftar suatu survey
 exports.applyToSurvey = async(req,res) =>{
-    const {id_survey} = req.params
-    const {id_surveyor} = req.user
+    const {id_survey} = req.params;
+    const id_surveyor = req.user.id_user;
     try {
         const checkStatus = await query(`SELECT status_task,status_surveyor FROM survey_table WHERE id_survey =$1 AND status_task ='merekrut'`,[id_survey])
         if (checkStatus.rows.length === 0) {
