@@ -387,7 +387,7 @@ const trackDeadlineStatus = (time) =>{
 
 //surveyor melihat projek yang mereka daftar
 exports.surveyorProjects = async(req,res) =>{
-  const{id_surveyor} = req.user
+  const id_surveyor = req.user.id_user
   try {
     //check dimana aja surveyor daftar
     const checkSurveyorProject = await query(`
