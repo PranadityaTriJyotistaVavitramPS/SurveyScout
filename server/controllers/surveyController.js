@@ -648,11 +648,12 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
   }
 }
 
+//surveyDetailuntukUmum
 exports.getSurveyDetail = async (req, res) => {
   const { id_survey } = req.params;
-
   try {
       const result = await query(`SELECT * FROM survey_table WHERE id_survey = $1`, [id_survey]);
+      //const status_surveyor_query = await query(`SELECT status FROM surveyor_application WHERE id_survey =$1 AND id_surveyor =$2`,[id_survey,id_surveyor])
 
       // Cek apakah survey ditemukan
       if (result.rows.length === 0) {
@@ -682,3 +683,41 @@ exports.getSurveyDetail = async (req, res) => {
   }
 };
 
+//surveyDetailuntukYangMendaftar
+exports.getAppliedSurveyDetail = async (req, res) => {
+  const { id_survey } = req.params;
+  try {
+      const result = await query(`SELECT * FROM survey_table WHERE id_survey = $1`, [id_survey]);
+      const status_surveyor_query = await query(`SELECT status FROM surveyor_application WHERE id_survey =$1 AND id_surveyor =$2`,[id_survey,id_surveyor])
+
+      // Cek apakah survey ditemukan
+      if (result.rows.length === 0) {
+          return res.status(404).json({
+              message: "Survey tidak ditemukan"
+          });
+      }
+
+      // Ambil detail survey
+      const surveyDetail = result.rows[0];
+
+      // Format tanggal tenggat_pengerjaan
+      const formattedDateDeadline = formatDeadline(surveyDetail.tenggat_pengerjaan);
+      const formattedDateCreatedAt = formatCreatedAt(surveyDetail.created_at)
+
+      // Kirim response
+      res.status(200).json({
+          message: "Success",
+          data: { ...surveyDetail, 
+            tenggat_pengerjaan: formattedDateDeadline, 
+            created_at:formattedDateCreatedAt,
+            status_surveyor:status_surveyor_query.rows[0].status
+          } 
+      });
+
+  } catch (error) {
+      console.error("Error saat mengambil survey detail:", error.message);
+      res.status(500).json({
+          message: "Internal Server Error"
+      });
+  }
+};
