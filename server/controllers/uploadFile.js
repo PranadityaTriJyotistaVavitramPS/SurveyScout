@@ -81,7 +81,7 @@ exports.uploadPictureFile = async (file) => {
 //uploadjawabanSurveyor
 exports.uploadSurveyorAnswer = async(files) => {
   try {
-    const uploadedUrls = [];
+    const uploadedFiles = [];
     for (const file of files) {
       const destination = `surveyor_answer/${Date.now()}-${file.originalname}`;
       await bucket.upload(file.path, { destination });
@@ -94,14 +94,19 @@ exports.uploadSurveyorAnswer = async(files) => {
       }
 
       const fileUrl = await exports.getSignedUrlForever(destination);
-      uploadedUrls.push(fileUrl);
+      uploadedFiles.push({
+        url: fileUrl,
+        size: file.size,       // Ambil ukuran file
+        type: file.mimetype    // Ambil tipe file
+      });
     }
-    return uploadedUrls; // Mengembalikan array URL
+    return uploadedFiles;
   } catch (error) {
     console.error('Error uploading file:', error);
     throw new Error('Failed to upload file');
   }
 };
+
 
 
 //mendapatkan nama file

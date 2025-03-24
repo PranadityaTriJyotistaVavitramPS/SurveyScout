@@ -485,7 +485,7 @@ exports.submitSurveyorAnswer = async(req,res) =>{
     const outputTarget = await query(`SELECT id_luaran,status_revisi FROM survey_table WHERE id_survey =$1`,[id_survey])
     const {id_luaran,status_revisi} = outputTarget.rows[0]
     if(status_revisi == false){
-      if (["diterima", "dikerjakan", "ditinjau"].includes(status)){
+      if (["mengerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
          INSERT INTO luaran_survey (survey_id, file)  
@@ -497,7 +497,7 @@ exports.submitSurveyorAnswer = async(req,res) =>{
         res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows });
       }
     } else {
-      if (["diterima", "dikerjakan", "ditinjau"].includes(status)){
+      if (["mengerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
           INSERT INTO luaran_survey (survey_id, file)  
@@ -653,8 +653,6 @@ exports.getSurveyDetail = async (req, res) => {
   const { id_survey } = req.params;
   try {
       const result = await query(`SELECT * FROM survey_table WHERE id_survey = $1`, [id_survey]);
-      //const status_surveyor_query = await query(`SELECT status FROM surveyor_application WHERE id_survey =$1 AND id_surveyor =$2`,[id_survey,id_surveyor])
-
       // Cek apakah survey ditemukan
       if (result.rows.length === 0) {
           return res.status(404).json({
@@ -715,7 +713,7 @@ exports.getAppliedSurveyDetail = async (req, res) => {
       });
 
   } catch (error) {
-      console.error("Error saat mengambil survey detail:", error.message);
+      console.error("Error saat mengambil applied survey detail:", error.message);
       res.status(500).json({
           message: "Internal Server Error"
       });
