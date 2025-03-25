@@ -236,28 +236,91 @@ exports.deleteARespond = async(req,res)=>{
     }
 }
 
-
-//surveyor ingin melihat task respond apa saja yang mereka daftar
-exports.surveyorTaskRespond = async(req,res) =>{
-    const{id_responden} = req.body;
+const trackDeadlineStatus = (time) =>{
+    const today = new Date();
+    let timeDiff = time - today;
+  
+    if(timeDiff < 0){
+        console.log('peringatan')
+        return true
+    }else{
+        console.log('masih aman')
+        return false
+      }
+  }
+  
+//menampilkan latar_belakang responden (nama_lengkap,jenis_kelamin, tanggal_lahir, kota_tinggal, pekerjaan, status_perkawinan, tingkat_pendidikan, hobi)
+exports.respondenBackground = async(req,res) =>{
+    const {id_responden} = req.body;
     try {
-        const result = await query(`SELECT id_respond,waktu_mendaftar FROM respondent_application WHERE id_responden = $1`,[id_responden]);
-        if (result.rows.length === 0) {
+        const respondenDataQuery = await query(`
+            SELECT nama_lengkap, jenis_kelamin, tanggal_lahir, lokasi, pekerjaan, status_perkawinan, tingkat_pendidikan, hobi
+            FROM responden_table
+            WHERE id_responden = $1
+        `,[id_responden])
+
+        const respondenData = respondenDataQuery.rows[0]
+        if(!respondenData){
             return res.status(404).json({
-                message: "Responden belum mendaftar ke tugas mana pun"
-            });
+                message:"Responden tidak ditemukan"
+            })
         }
-        const idResponds = result.rows.map(data => data.id_respond);
-        const respondData = await query(`SELECT * FROM respond_table WHERE id_respond = ANY($1)`,[idResponds])
 
         res.status(200).json({
-            message:"data sukses diambil",
-            data:respondData.rows
+            message:"success",
+            data: respondenData
         })
+        
     } catch (error) {
-        console.error("error ketika surveyor ingin melihat task respond yang didaftar",error);
+        console.error("Error ketika mengambil latar belakang responden",error)
         res.status(500).json({
             message:"Internal Server Error"
         })
     }
 }
+
+//responden ingin melihat projek yang mereka daftar
+exports.respondenProjects = async(req,res) =>{
+    const id_responden = req.user.id_user;
+
+    try {
+        //cari dari respondent_application id_respond apa saja yang didaftar oleh id_responden, ambil juga statusnya
+        const checkRespondenProjects = await query(`
+            SELECT id_respond, status
+            FROM respondent_application
+            WHERE id_responden = $1
+        `,[id_responden])
+        const projects = checkRespondenProjects.rows;
+        if(projects.length === 0){
+            return res.status(404).json({
+                message:"Responden masih belum mendaftar ke suatu project"
+            })
+        }
+        const projectCardDetail = Promise.all(
+            projects.map(async(project)=>{
+                const{id_respond,status} = project;
+
+                const infoRespond = await query(`SELECT * FROM respond_table WHERE id_respond = $1`,[id_respond]);
+                const {tenggat_pendaftaran,tenggat_pengerjaan} = infoRespond.rows[0]
+
+                const statDlPengerjaan = trackDeadlineStatus(tenggat_pengerjaan);
+                const statDlPendaftaran = trackDeadlineStatus(tenggat_pendaftaran);
+
+                if(statDlPendaftaran){
+                    //ubah status di application jadi mengerjakan
+                    //ubah status_task = dikerjakan
+                }
+            })
+        )
+        //cari dari respond_table apa aja yang dibutuhkan buat cardnya (nama_proyek,lokasi, kompensasi, )
+        
+    } catch (error) {
+        
+    }
+}
+//responden ingin mengumpulkan bukti mereka telah menjawab (png)
+//menampilkan jawaban yang telah dikumpulkan (client-side)
+//menerima jawwaban responden (ubah status = 'selesai')
+//meminta revisi dari responden (ubah status ='mengerjakan')
+//detail respond untuk umum
+//detail respond untuk pendaftar

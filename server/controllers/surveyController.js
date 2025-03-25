@@ -391,7 +391,7 @@ exports.surveyorProjects = async(req,res) =>{
   try {
     //check dimana aja surveyor daftar
     const checkSurveyorProject = await query(`
-      SELECT id_survey 
+      SELECT id_survey, status
       FROM surveyor_application 
       WHERE id_surveyor = $1`
     ,[id_surveyor])
@@ -404,7 +404,7 @@ exports.surveyorProjects = async(req,res) =>{
     
     const projectCardDetail = await Promise.all(
       projects.map(async(project)=>{
-        const{id_survey} = project;
+        const{id_survey,status} = project;
 
         const infoSurvey = await query(`
           SELECT id_survey,nama_proyek,lokasi,
@@ -412,18 +412,12 @@ exports.surveyorProjects = async(req,res) =>{
           FROM survey_table 
           WHERE id_survey =$1
         `,[id_survey])
-
-        const infoSurveyApplication = await query(`
-          SELECT status
-          FROM surveyor_application
-          WHERE id_surveyor =$1 AND id_survey=$2
-        `,[id_surveyor,id_survey])
         
         const{tenggat_pengerjaan} = infoSurvey.rows[0]
         const deadline_status = trackDeadlineStatus(tenggat_pengerjaan);
         if(deadline_status){
           await query(`
-            UPDATE survey_application
+            UPDATE surveyor_application
             SET status = 'deadline'
             WHERE id_survey =$1  
           `,[id_survey])
@@ -432,7 +426,7 @@ exports.surveyorProjects = async(req,res) =>{
           id_survey:infoSurvey.rows[0].id_survey,
           nama_proyek:infoSurvey.rows[0].nama_proyek,
           lokasi:infoSurvey.rows[0].lokasi,
-          status_surveyor:infoSurveyApplication.rows[0].status,
+          status_surveyor:status,
           tipe_hasil:infoSurvey.rows[0].tipe_hasil,
           tenggat_pengerjaan:tenggat_pengerjaan
         };
