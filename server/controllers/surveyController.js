@@ -488,7 +488,7 @@ exports.submitSurveyorAnswer = async(req,res) =>{
         `;      
         const values = [id_luaran, ...uploadedFiles];
         const result = await query(queryText, values);
-        res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows });
+        res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length});
       }
     } else {
       if (["mengerjakan", "ditinjau"].includes(status)){
@@ -500,7 +500,7 @@ exports.submitSurveyorAnswer = async(req,res) =>{
         `;
         const values = [id_luaran, ...uploadedFiles];
         const result = await query(queryText, values);
-        res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows });
+        res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length });
       }
     } 
     await query(`
