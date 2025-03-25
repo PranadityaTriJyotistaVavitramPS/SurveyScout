@@ -678,6 +678,7 @@ exports.getSurveyDetail = async (req, res) => {
 //surveyDetailuntukYangMendaftar
 exports.getAppliedSurveyDetail = async (req, res) => {
   const { id_survey } = req.params;
+  const id_surveyor = req.user.id_user
   try {
       const result = await query(`SELECT * FROM survey_table WHERE id_survey = $1`, [id_survey]);
       const status_surveyor_query = await query(`SELECT status FROM surveyor_application WHERE id_survey =$1 AND id_surveyor =$2`,[id_survey,id_surveyor])
