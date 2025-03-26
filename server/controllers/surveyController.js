@@ -528,7 +528,7 @@ exports.showSurveyorAnswer = async(req,res)=>{
 
     const surveyQueryAnswer = await query(`
      SELECT * 
-        FROM luaran_table 
+        FROM luaran_survey 
         WHERE survey_id = $1 
         AND status IN ('pending', 'selesai')`
     ,[id_luaran]);
