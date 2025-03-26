@@ -483,24 +483,26 @@ exports.submitSurveyorAnswer = async(req,res) =>{
       if (["mengerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
-          INSERT INTO luaran_survey (survey_id, file, file_size, file_type)  
-          VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 3 + 2}, $${i * 3 + 3}, $${i * 3 + 4})`).join(", ")}
-          RETURNING *;
-          `;
-        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.url, file.size, file.type])];
+        INSERT INTO luaran_survey (survey_id, file_name, file, file_size, file_type)  
+        VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(", ")}
+        RETURNING *;
+        `;
+        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.name, file.url, file.size, file.type])];
         const result = await query(queryText, values);
+
         res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length});
       }
     } else {
       if (["mengerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
-        INSERT INTO luaran_survey (survey_id, file, file_size, file_type)  
-        VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 3 + 2}, $${i * 3 + 3}, $${i * 3 + 4})`).join(", ")}
-        RETURNING *;
+          INSERT INTO luaran_survey (survey_id, file_name, file, file_size, file_type)  
+          VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(", ")}
+          RETURNING *;
         `;
-        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.url, file.size, file.type])];
+        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.name, file.url, file.size, file.type])];
         const result = await query(queryText, values);
+
         res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length });
       }
     } 

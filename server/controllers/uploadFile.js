@@ -95,6 +95,7 @@ exports.uploadSurveyorAnswer = async(files) => {
 
       const fileUrl = await exports.getSignedUrlForever(destination);
       uploadedFiles.push({
+        name:file.originalname,
         url: fileUrl,
         size: file.size,       // Ambil ukuran file
         type: file.mimetype    // Ambil tipe file
