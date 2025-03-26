@@ -483,11 +483,11 @@ exports.submitSurveyorAnswer = async(req,res) =>{
       if (["mengerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
-         INSERT INTO luaran_survey (survey_id, file)  
-         VALUES ${uploadedFiles.map((_, i) => `($1, $${i + 2})`).join(", ")}
-         RETURNING *;
-        `;      
-        const values = [id_luaran, ...uploadedFiles];
+          INSERT INTO luaran_survey (survey_id, file, file_size, file_type)  
+          VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 3 + 2}, $${i * 3 + 3}, $${i * 3 + 4})`).join(", ")}
+          RETURNING *;
+          `;
+        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.url, file.size, file.type])];
         const result = await query(queryText, values);
         res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length});
       }
@@ -495,11 +495,11 @@ exports.submitSurveyorAnswer = async(req,res) =>{
       if (["mengerjakan", "ditinjau"].includes(status)){
         const uploadedFiles = await uploadSurveyorAnswer(files);
         const queryText = `
-          INSERT INTO luaran_survey (survey_id, file)  
-          VALUES ${uploadedFiles.map((_, i) => `($1, $${i + 2})`).join(", ")}
-          RETURNING *;
+        INSERT INTO luaran_survey (survey_id, file, file_size, file_type)  
+        VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 3 + 2}, $${i * 3 + 3}, $${i * 3 + 4})`).join(", ")}
+        RETURNING *;
         `;
-        const values = [id_luaran, ...uploadedFiles];
+        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.url, file.size, file.type])];
         const result = await query(queryText, values);
         res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length });
       }
@@ -519,7 +519,7 @@ exports.submitSurveyorAnswer = async(req,res) =>{
 
 //menampilkan jawaban surveyor yang telah dikumpulkan(sisi client)
 exports.showSurveyorAnswer = async(req,res)=>{
-  const{id_survey} = req.body;
+  const{id_survey} = req.params;
   try {
     //cek seluruh tabel luaran_survey yang memiliki status pending
     const targetTabel = await query(`SELECT id_luaran FROM survey_table WHERE id_survey =$1`,[id_survey])
@@ -532,12 +532,15 @@ exports.showSurveyorAnswer = async(req,res)=>{
         WHERE survey_id = $1 
         AND status IN ('pending', 'selesai')`
     ,[id_luaran]);
+    const surveyAnswer = surveyQueryAnswer.rows
 
     res.status(200).json({
       message:"success",
-      data:surveyQueryAnswer.rows
+      data:{
+        ...surveyAnswer,
+        jumlah_luaran: surveyAnswer.length
+      }
     })
-
   } catch (error) {
      console.error("Error ketika menampilkan jawaban surveyor",error)
      res.status(500).json({
