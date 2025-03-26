@@ -320,7 +320,36 @@ exports.respondenProjects = async(req,res) =>{
 }
 //responden ingin mengumpulkan bukti mereka telah menjawab (png)
 //menampilkan jawaban yang telah dikumpulkan (client-side)
-//menerima jawwaban responden (ubah status = 'selesai')
+exports.showRespondenAnswers = async(req,res) =>{
+    const id_respond = req.params
+    try {
+        //cari id_luaran dari respond ini terlebih dahulu
+        const targetTabel = await query(`SELECT id_luaran FROM respond_table WHERE id_respond = $1`,[id_respond])
+        const target = targetTabel.rows[0];
+
+        const {id_luaran} = target;
+        //tampilkan jawaban yang statusnya pending/pre-revisi
+        const respondQueryAnswer = await query(`
+            SELECT * 
+            FROM luaran_respond 
+            WHERE respond_id = $1
+            AND status IN('pending','selesai')`
+        ,[id_luaran])
+
+        res.status(200).json({
+            message:"success",
+            data:respondQueryAnswer.rows
+        })
+        
+    } catch (error) {
+        console.error("Error ketika menampilkan jawaban responden",error)
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+    }
+}
+
+//menerima jawaban responden (ubah status = 'selesai')
 //meminta revisi dari responden (ubah status ='mengerjakan')
 //detail respond untuk umum
 //detail respond untuk pendaftar
