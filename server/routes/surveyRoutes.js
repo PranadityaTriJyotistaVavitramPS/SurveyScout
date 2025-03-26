@@ -10,7 +10,7 @@ router.get('/:id_survey',surveyController.getSurveyDetail);
 router.get('/:id_survey/applied',authenticate,surveyController.getAppliedSurveyDetail);
 router.post('/createSurveyDraft',authenticate,surveyController.createSurveyDraft);
 router.post('/createSurveyPayment/:id_draft',surveyController.createSurveyPayment);
-router.post('/uploadAnswer',surveyController.uploadAnswers,surveyController.submitSurveyorAnswer)
+router.post('/uploadAnswer/:id_survey',authenticate,surveyController.uploadAnswers,surveyController.submitSurveyorAnswer)
 router.delete('/deleteATask',surveyController.deleteASurvey);
 
 module.exports = router;

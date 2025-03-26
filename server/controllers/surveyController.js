@@ -465,14 +465,15 @@ exports.uploadAnswers = upload.array('file');
 
 //mengumpulkan jawaban (sisi surveyor)
 exports.submitSurveyorAnswer = async(req,res) =>{
-  const{id_survey, id_surveyor} = req.body;
+  const{id_survey} = req.params;
+  const id_surveyor = req.user.id_user;
   const files = req.files;
   try {
     //pertama check dulu identitas valid apa ngga ? boleh ngga dia ngisi/ ngelihat jawaban
     const checkCandidateStatus = await query(`SELECT status FROM surveyor_application WHERE id_surveyor = $1 AND id_survey =$2`,[id_surveyor,id_survey])
     const status = checkCandidateStatus.rows[0].status;
 
-    if (["ditolak","pending"].includes(status)) {
+    if (["ditolak","mengerjakan"].includes(status)) {
       return res.status(403).json({ message: "Akses ditolak" });
     }
     
