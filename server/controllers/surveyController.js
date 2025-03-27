@@ -5,7 +5,7 @@ require('moment/locale/id');
 moment.locale('id');
 multer = require('multer');
 const {uploadSurveyorAnswer} = require('./uploadFile')
-const {sendNotificationtoAdmin} = require('./otpController')
+const {sendNotificationtoAdmin,deleteFileFromGoogleStorage,getFileNameFromURL} = require('./otpController')
 
 
 //memasukkan task yang telah dibuat ke draft (belum dilakukan pembayaran)
@@ -720,3 +720,29 @@ exports.getAppliedSurveyDetail = async (req, res) => {
       });
   }
 };
+
+
+//menghapus jawaban surveyor
+exports.deleteSurveyAnswer = async(req,res) =>{
+  const {survey_id} = req.body;
+  const {id_luaran} = req.params;
+  try {
+    //hapus dulu dari google cloud console
+    const currentFile = await query(`SELECT file_url FROM luaran_survey WHERE id_luaran = $1 AND survey_id =$2`,[id_luaran,survey_id])
+
+    const oldFileUrl = currentFile.rows[0]?.file_url
+    const fileName = getFileNameFromURL(oldFileUrl)
+
+    await deleteFileFromGoogleStorage(fileName)
+    //dia ngehapus dari luaran_table id_luaran di survey_id ini
+    await query(`DELETE FROM luaran_survey WHERE id_luaran =$1 AND survey_id =$2`,[id_luaran,survey_id])
+    res.status(204).end();
+
+    
+  } catch (error) {
+      console.error("Error ketika menghapus jawaban",error);
+      res.status(500).json({
+        message:"Internal Server Error"
+      })
+  }
+}
