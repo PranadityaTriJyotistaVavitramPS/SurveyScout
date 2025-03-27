@@ -4,8 +4,9 @@ const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
 multer = require('multer');
-const {uploadSurveyorAnswer} = require('./uploadFile')
-const {sendNotificationtoAdmin,deleteFileFromGoogleStorage,getFileNameFromURL} = require('./otpController')
+const {uploadSurveyorAnswer,deleteFileFromGoogleStorage,getFileNameFromURL} = require('./uploadFile')
+const {sendNotificationtoAdmin} = require('./otpController')
+
 
 
 //memasukkan task yang telah dibuat ke draft (belum dilakukan pembayaran)
