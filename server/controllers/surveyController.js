@@ -730,7 +730,7 @@ exports.deleteSurveyAnswer = async(req,res) =>{
     //hapus dulu dari google cloud console
     const currentFile = await query(`SELECT file_url FROM luaran_survey WHERE id_luaran = $1 AND survey_id =$2`,[id_luaran,survey_id])
 
-    const oldFileUrl = currentFile.rows[0]?.file_url
+    const oldFileUrl = currentFile.rows[0]?.file
     const fileName = getFileNameFromURL(oldFileUrl)
 
     await deleteFileFromGoogleStorage(fileName)
