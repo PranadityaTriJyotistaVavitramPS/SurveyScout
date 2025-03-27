@@ -12,7 +12,7 @@ router.get('/:id_survey/surveyAnswer',surveyController.showSurveyorAnswer)
 router.post('/createSurveyDraft',authenticate,surveyController.createSurveyDraft);
 router.post('/createSurveyPayment/:id_draft',surveyController.createSurveyPayment);
 router.post('/uploadAnswer/:id_survey',authenticate,surveyController.uploadAnswers,surveyController.submitSurveyorAnswer)
-router.delete('/:id_luaran/deleteJawaban')
+router.delete('/:id_luaran/deleteJawaban',surveyController.deleteSurveyAnswer)
 router.delete('/deleteATask',surveyController.deleteASurvey);
 
 module.exports = router;
