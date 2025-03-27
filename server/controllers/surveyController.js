@@ -734,6 +734,9 @@ exports.deleteSurveyAnswer = async(req,res) =>{
     const oldFileUrl = currentFile.rows[0]?.file
     const fileName = getFileNameFromURL(oldFileUrl)
 
+    console.log("oldFile Urlnya:",oldFileUrl);
+    console.log("Filenamenya yang dihapus:",fileName);
+
     await deleteFileFromGoogleStorage(fileName)
     //dia ngehapus dari luaran_table id_luaran di survey_id ini
     await query(`DELETE FROM luaran_survey WHERE id_luaran =$1 AND survey_id =$2`,[id_luaran,survey_id])
