@@ -358,24 +358,23 @@ exports.clientProjects = async (req, res) => {
                   const freshStatus = trackRecruitmenStatus(created_at); 
                   const deadlineStatus = trackDeadlineStatus(tenggat_pengerjaan);
 
-                  //kadaluwarsa
-                  if (freshStatus && checkApplication.rows.length === 0) {
-                      await query(`UPDATE survey_table SET status_task = 'kadaluwarsa' WHERE id_survey = $1`, [id_survey]);
-                  }
-                  //peringatan
-                  if (deadlineStatus && !ada_jawaban) {
-                      await query(`UPDATE survey_table SET status_task = 'peringatan' WHERE id_survey =$1`, [id_survey]);
-                  }
-                  // //dikerjakan
-                  if(checkIfWorkerExist.rows.length > 0){
-                      await query(`UPDATE survey_table SET status_task ='dikerjakan' WHERE id_survey=$1`,[id_survey]);
-                  }
-                  //ditinjau
-                  if(ada_jawaban){
-                      await query(`UPDATE survey_table SET status_task = 'ditinjau' WHERE id_survey = $1`,[id_survey]);
-                  }
-
-
+                //   //kadaluwarsa
+                //   if (freshStatus && checkApplication.rows.length === 0) {
+                //       await query(`UPDATE survey_table SET status_task = 'kadaluwarsa' WHERE id_survey = $1`, [id_survey]);
+                //   }
+                //   //peringatan
+                //   if (deadlineStatus && !ada_jawaban) {
+                //       await query(`UPDATE survey_table SET status_task = 'peringatan' WHERE id_survey =$1`, [id_survey]);
+                //   }
+                //   // //dikerjakan
+                //   if(checkIfWorkerExist.rows.length > 0){
+                //       await query(`UPDATE survey_table SET status_task ='dikerjakan' WHERE id_survey=$1`,[id_survey]);
+                //   }
+                //   //ditinjau
+                //   if(ada_jawaban){
+                //       await query(`UPDATE survey_table SET status_task = 'ditinjau' WHERE id_survey = $1`,[id_survey]);
+                //   }
+                
               }               
               formattedData.push({
                   ...project

@@ -203,3 +203,15 @@ exports.deleteAccount = async(req,res) => {
     }
 }
 
+//surveyor bookmarked suatu project
+exports.surveyorBookmarked = async(req,res) =>{
+    const id_surveyor = req.user.id_user;
+    const {id_survey} = req.params
+    try {
+        //masukkan ke 
+        
+    } catch (error) {
+        
+    }
+}
+//menampilkan bookmarked surveyor
