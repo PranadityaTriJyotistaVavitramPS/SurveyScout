@@ -374,7 +374,7 @@ exports.clientProjects = async (req, res) => {
                 //   if(ada_jawaban){
                 //       await query(`UPDATE survey_table SET status_task = 'ditinjau' WHERE id_survey = $1`,[id_survey]);
                 //   }
-                
+
               }               
               formattedData.push({
                   ...project
@@ -435,3 +435,88 @@ exports.clientProjects = async (req, res) => {
       });
   }
 };
+
+//surveyor bookmarked suatu project
+exports.projectBookmarked = async(req,res) =>{
+    const id_user = req.user.id_user;
+    const id_project = req.params
+    try {
+        if(id_project.startsWith('ASD')){
+            //masukkan ke saved_projects dengan input 'survey' sebagai role
+            const savedSurvey = await query(`
+                INSERT INTO saved_projects 
+                SET (id_users, id_projects, project_type) 
+                VALUES ($1,$2,'survey') RETURNING *
+            `,[id_user, id_project])    
+
+            res.status(200).json({
+                message:"success",
+                data:savedSurvey.rows[0]
+            })    
+
+        } else {
+            const savedRespond = await query(`
+                INSERT INTO saved_projects 
+                SET (id_users, id_projects, project_type) 
+                VALUES ($1,$2,'respond') RETURNING *
+            `,[id_user, id_project])  
+
+            res.status(200).json({
+                message:"success",
+                data:savedRespond.rows[0]
+            })    
+        }
+        //berikan status (200) apabila berhasil
+        
+        
+    } catch (error) {
+        console.error("Error ketika melakukan bookmark suatu project");
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+        
+    }
+}
+
+//menampilkan bookmarked
+exports.showBookmarkedProject = async(req,res) =>{
+    const {id_user} = req.user
+    try {
+        const savedProjectsQuery = await query(`SELECT id_product FROM saved_projects WHERE id_user =$1`,[id_user])
+        const savedProjects = savedProjectsQuery.rows
+
+        const projectCardDetail = await Promise.all(
+            savedProjects.map(async(project) =>{
+                const{id_product,role} = project
+                if(role =='survey'){
+                    const surveyDetailQuery = await query(`
+                        SELECT * 
+                        FROM survey_table 
+                        WHERE id_survey =$1    
+                    `,[id_product])
+
+                    return surveyDetailQuery.rows;
+                } else {
+                    const respondDetailQuery = await query(`
+                        SELECT *
+                        FROM respond_table
+                        WHERE id_respond =$1    
+                    `,[id_product])
+
+                    return respondDetailQuery.rows
+                }
+            })
+        )
+        res.status(200).json({
+            message:"success",
+            data:projectCardDetail
+        })
+
+    } catch (error) {
+        console.error("Error ketika melakukan pengambilan saved product",error)
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+        
+    }
+}
