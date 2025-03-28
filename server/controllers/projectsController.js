@@ -439,7 +439,7 @@ exports.clientProjects = async (req, res) => {
 //surveyor bookmarked suatu project
 exports.projectBookmarked = async(req,res) =>{
     const id_user = req.user.id_user;
-    const id_project = req.params
+    const {id_project} = req.params
     try {
         if(id_project.startsWith('ASD')){
             //masukkan ke saved_projects dengan input 'survey' sebagai role

@@ -315,10 +315,14 @@ exports.respondenProjects = async(req,res) =>{
         //cari dari respond_table apa aja yang dibutuhkan buat cardnya (nama_proyek,lokasi, kompensasi, )
         
     } catch (error) {
-        
+        console.error("Error ketika responden ingin melihat projek mereka",error)
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
     }
 }
 //responden ingin mengumpulkan bukti mereka telah menjawab (png)
+
 //menampilkan jawaban yang telah dikumpulkan (client-side)
 exports.showRespondenAnswers = async(req,res) =>{
     const id_respond = req.params

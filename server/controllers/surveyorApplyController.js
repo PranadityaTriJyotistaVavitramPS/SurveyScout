@@ -37,7 +37,7 @@ exports.surveyorWorker = async(req,res) => {
             SELECT id_surveyor 
             FROM surveyor_application 
             WHERE id_survey = $1 
-            AND (status ='mendaftar' OR status='mengerjakan')`,[id_survey])
+            AND (status != 'ditolak')`,[id_survey])
         const candidateResult = projectCandidate.rows
         const jumlah_candidate = candidateResult.length
         //dari yang daftar ambil data id_surveyor,scout_trust, profile_picture,cv_ats
