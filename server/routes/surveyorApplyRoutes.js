@@ -5,7 +5,7 @@ const authenticate = require('../middleware/authenticate')
 
 router.get("/:id_survey",surveyorApplyController.surveyorWorker)
 router.post("/mendaftarSurvey/:id_survey",authenticate, surveyorApplyController.applyToSurvey);
-router.post("/menerimaSurveyor",surveyorApplyController.accSurveyor);
+router.post(":id_survey/acceptedSurveyor",surveyorApplyController.accSurveyor);
 
 
 module.exports = router;

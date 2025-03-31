@@ -81,7 +81,8 @@ exports.surveyorWorker = async(req,res) => {
 
 //menerima surveyor
 exports.accSurveyor = async(req,res) =>{
-    const{id_surveyor,id_survey} = req.body
+    const{id_surveyor} = req.body;
+    const{id_survey} = req.params;
     try {
         //cek terlebih dahulu ada berapa yang daftar
         const checkCandidate = await query(`SELECT * FROM surveyor_application WHERE id_surveyor =$1 AND id_survey=$2`,[id_surveyor,id_survey])
