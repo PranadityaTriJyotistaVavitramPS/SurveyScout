@@ -86,42 +86,27 @@ exports.accSurveyor = async(req,res) =>{
     try {
         //cek terlebih dahulu ada berapa yang daftar
         const checkCandidate = await query(`SELECT * FROM surveyor_application WHERE id_surveyor =$1 AND id_survey=$2`,[id_surveyor,id_survey])
-        const jumlah_candidate = checkCandidate.rows.length;
         //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
-        if(jumlah_candidate >= 1){
-            const acceptedCandidate = checkCandidate.rows.some(candidate => candidate.status === 'mengerjakan');
-            console.log(acceptedCandidate);
+        await query(`
+            UPDATE surveyor_application 
+            SET status ='mengerjakan 
+            WHERE id_survey=$1 AND id_surveyor=$2' RETURNING *`,
+        [id_survey,id_surveyor])
+        
+        const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
+        console.log(acceptedCandidate);
 
-            if(acceptedCandidate){
-                const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'mengerjakan');
-                for(const candidate of rejectedCandidate){
-                    console.log(candidate.id_surveyor)
-                    await query(`
-                        UPDATE surveyor_application 
-                        SET status = 'ditolak'
-                        WHERE id_surveyor =$1 AND id_survey =$2
-                    `,[candidate.id_surveyor,id_survey])
-                }
-            } else {
+        if(acceptedCandidate.rows.length >= 1){
+            const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'mengerjakan');
+            for(const candidate of rejectedCandidate){
+                console.log(candidate.id_surveyor)
                 await query(`
                     UPDATE surveyor_application 
-                    SET status = 'mengerjakan' 
-                    WHERE id_surveyor = $1 AND id_survey = $2
-                `, [id_surveyor, id_survey]);
+                    SET status = 'ditolak'
+                    WHERE id_surveyor =$1 AND id_survey =$2
+                `,[candidate.id_surveyor,id_survey])
             }
-
-        } else {
-            await query(`
-                UPDATE surveyor_application 
-                SET status = 'mengerjakan' 
-                WHERE id_survey =$1 AND id_surveyor =$2`,
-            [id_survey,id_surveyor])
         }
-        await query(`
-            UPDATE survey_table 
-            SET status_task='dikerjakan'
-            WHERE id_survey =$1
-        `,[id_survey])
 
         res.status(200).json({
             message:"success"
