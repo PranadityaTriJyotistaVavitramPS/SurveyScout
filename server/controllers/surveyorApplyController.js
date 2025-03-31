@@ -89,7 +89,7 @@ exports.accSurveyor = async(req,res) =>{
         const jumlah_candidate = checkCandidate.rows.length;
         //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
         if(jumlah_candidate >= 1){
-            const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
+            const acceptedCandidate = checkCandidate.rows.some(candidate => candidate.status === 'mengerjakan');
             console.log(acceptedCandidate);
 
             if(acceptedCandidate){
