@@ -117,6 +117,10 @@ exports.accSurveyor = async (req, res) => {
                 [id_survey, candidate.id_surveyor]
             );
         }
+        
+        await query(`
+            UPDATE survey_table SET status_task = 'direkrut' WHERE id_survey = $1    
+        `,[id_survey])
 
         res.status(200).json({ message: "Surveyor berhasil diterima" });
 
@@ -128,7 +132,8 @@ exports.accSurveyor = async (req, res) => {
 
 //menolak surveyor
 exports.rejSurveyor = async(req,res) =>{
-    const{id_survey, id_surveyor} = req.body
+    const {id_survey } =req.params 
+    const{id_surveyor} = req.body
     try {
         await query(`
             UPDATE surveyor_application 
