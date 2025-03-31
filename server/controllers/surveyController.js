@@ -474,39 +474,26 @@ exports.submitSurveyorAnswer = async(req,res) =>{
     const checkCandidateStatus = await query(`SELECT status FROM surveyor_application WHERE id_surveyor = $1 AND id_survey =$2`,[id_surveyor,id_survey])
     const status = checkCandidateStatus.rows[0].status;
 
-    if (["ditolak"].includes(status)) {
+    if (["ditolak","mendaftar"].includes(status)) {
       return res.status(403).json({ message: "Akses ditolak" });
     }
     
-    const outputTarget = await query(`SELECT id_luaran,status_revisi FROM survey_table WHERE id_survey =$1`,[id_survey])
-    const {id_luaran,status_revisi} = outputTarget.rows[0]
-    if(status_revisi == false){
-      if (["mengerjakan", "ditinjau"].includes(status)){
-        const uploadedFiles = await uploadSurveyorAnswer(files);
-        const queryText = `
-        INSERT INTO luaran_survey (survey_id, file_name, file, file_size, file_type)  
-        VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(", ")}
-        RETURNING *;
-        `;
-        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.name, file.url, file.size, file.type])];
-        const result = await query(queryText, values);
+    const outputTarget = await query(`SELECT id_luaran FROM survey_table WHERE id_survey =$1`,[id_survey])
+    const {id_luaran} = outputTarget.rows[0]
+  
+    if (["mengerjakan","ditinjau"].includes(status)){
+      const uploadedFiles = await uploadSurveyorAnswer(files);
+      const queryText = `
+      INSERT INTO luaran_survey (survey_id, file_name, file, file_size, file_type)  
+      VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(", ")}
+      RETURNING *;
+      `;
+      const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.name, file.url, file.size, file.type])];
+      const result = await query(queryText, values);
 
-        res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length});
+      res.status(201).json({ message: "Jawaban berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length});
       }
-    } else {
-      if (["mengerjakan", "ditinjau"].includes(status)){
-        const uploadedFiles = await uploadSurveyorAnswer(files);
-        const queryText = `
-          INSERT INTO luaran_survey (survey_id, file_name, file, file_size, file_type)  
-          VALUES ${uploadedFiles.map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(", ")}
-          RETURNING *;
-        `;
-        const values = [id_luaran, ...uploadedFiles.flatMap(file => [file.name, file.url, file.size, file.type])];
-        const result = await query(queryText, values);
-
-        res.status(201).json({ message: "Revisi berhasil diunggah", data: result.rows, jumlah_luaran:result.rows.length });
-      }
-    } 
+    
     await query(`
       UPDATE surveyor_application
       SET status = 'ditinjau'
@@ -598,7 +585,8 @@ exports.accSurveyorAnswer = async(req,res) =>{
 //meminta surveyor revisi
 exports.revisiSurveyorAnswer = async(req,res) =>{
   //inputnnya bakalan dapet id_survey, dari id_luaran sekalian
-  const {id_survey, tenggat_pengerjaan, task_revisi} = req.body
+  const {id_survey} = req.params;
+  const {tenggat_pengerjaan, task_revisi} = req.body;
   try {
     const outputTarget = await query(`SELECT id_luaran,status_revisi FROM survey_table WHERE id_survey =$1`,[id_survey])
     const {id_luaran,status_revisi} = outputTarget.rows[0]

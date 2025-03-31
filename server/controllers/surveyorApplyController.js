@@ -80,43 +80,51 @@ exports.surveyorWorker = async(req,res) => {
 }
 
 //menerima surveyor
-exports.accSurveyor = async(req,res) =>{
-    const{id_surveyor} = req.body;
-    const{id_survey} = req.params;
-    try {
-        //cek terlebih dahulu ada berapa yang daftar
-        const checkCandidate = await query(`SELECT * FROM surveyor_application WHERE id_surveyor =$1 AND id_survey=$2`,[id_surveyor,id_survey])
-        //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
-        await query(`
-            UPDATE surveyor_application 
-            SET status ='mengerjakan 
-            WHERE id_survey=$1 AND id_surveyor=$2' RETURNING *`,
-        [id_survey,id_surveyor])
-        
-        const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
-        console.log(acceptedCandidate);
+exports.accSurveyor = async (req, res) => {
+    const { id_surveyor } = req.body;
+    const { id_survey } = req.params;
 
-        if(acceptedCandidate.rows.length >= 1){
-            const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'mengerjakan');
-            for(const candidate of rejectedCandidate){
-                console.log(candidate.id_surveyor)
-                await query(`
-                    UPDATE surveyor_application 
-                    SET status = 'ditolak'
-                    WHERE id_surveyor =$1 AND id_survey =$2
-                `,[candidate.id_surveyor,id_survey])
-            }
+    try {
+        // Cek daftar semua kandidat untuk survey ini
+        const checkCandidates = await query(
+            `SELECT * FROM surveyor_application WHERE id_survey = $1`, 
+            [id_survey]
+        );
+
+        // Pastikan kandidat yang diterima ada dalam daftar
+        const targetCandidate = checkCandidates.rows.find(candidate => candidate.id_surveyor === id_surveyor);
+        if (!targetCandidate) {
+            return res.status(404).json({ message: "Surveyor tidak ditemukan dalam daftar pendaftar" });
         }
 
-        res.status(200).json({
-            message:"success"
-        })
-        
+        // Update status kandidat yang diterima
+        await query(
+            `UPDATE surveyor_application SET status = 'mengerjakan' WHERE id_survey = $1 AND id_surveyor = $2`, 
+            [id_survey, id_surveyor]
+        );
+
+        // Dapatkan kembali daftar kandidat setelah update
+        const updatedCandidates = await query(
+            `SELECT * FROM surveyor_application WHERE id_survey = $1`, 
+            [id_survey]
+        );
+
+        // Tolak kandidat lain yang tidak diterima
+        const rejectedCandidates = updatedCandidates.rows.filter(candidate => candidate.id_surveyor !== id_surveyor);
+        for (const candidate of rejectedCandidates) {
+            await query(
+                `UPDATE surveyor_application SET status = 'ditolak' WHERE id_survey = $1 AND id_surveyor = $2`,
+                [id_survey, candidate.id_surveyor]
+            );
+        }
+
+        res.status(200).json({ message: "Surveyor berhasil diterima" });
+
     } catch (error) {
         console.error("Error saat menerima pendaftar survey:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
-}   
+};
 
 //menolak surveyor
 exports.rejSurveyor = async(req,res) =>{

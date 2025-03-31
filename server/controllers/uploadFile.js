@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const { Storage } = require('@google-cloud/storage');
 
 const storage = new Storage({
@@ -103,10 +103,39 @@ exports.uploadSurveyorAnswer = async(files) => {
     }
     return uploadedFiles;
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error uploading Surveyor file to google cloud:', error);
     throw new Error('Failed to upload file');
   }
 };
+
+
+exports.uploadRespondenAnswer = async (file) => {
+  try {
+    const destination = `responden_answer/${Date.now()}-${file.originalname}`;
+
+    await bucket.upload(file.path, { destination });
+
+    console.log(`File uploaded to ${destination}`);
+
+    // Hapus file setelah upload selesai
+    await fs.unlink(file.path);
+    console.log(`File ${file.path} deleted locally`);
+
+    const fileUrl = await exports.getSignedUrlForever(destination);
+
+    return {
+      name: file.originalname,
+      url: fileUrl,
+      size: file.size,
+      type: file.mimetype, // Fix: Ambil dari file.mimetype
+    };
+    
+  } catch (error) {
+    console.error('Error Uploading Responden file to Google Cloud:', error);
+    throw new Error('Failed to upload file');
+  }
+};
+
 
 
 
