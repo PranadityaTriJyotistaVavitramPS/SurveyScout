@@ -88,7 +88,7 @@ exports.accSurveyor = async(req,res) =>{
         const checkCandidate = await query(`SELECT * FROM surveyor_application WHERE id_surveyor =$1 AND id_survey=$2`,[id_surveyor,id_survey])
         const jumlah_candidate = checkCandidate.rows.length;
         //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
-        if(jumlah_candidate > 1){
+        if(jumlah_candidate >= 1){
             const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
             
             if(acceptedCandidate){
