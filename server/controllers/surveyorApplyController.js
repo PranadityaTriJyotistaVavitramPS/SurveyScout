@@ -90,15 +90,17 @@ exports.accSurveyor = async(req,res) =>{
         //kalau lebih dari 1 maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
         if(jumlah_candidate >= 1){
             const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
-            
+            console.log(acceptedCandidate);
+
             if(acceptedCandidate){
                 const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'mengerjakan');
                 for(const candidate of rejectedCandidate){
+                    console.log(candidate.id_surveyor)
                     await query(`
                         UPDATE surveyor_application 
                         SET status = 'ditolak'
                         WHERE id_surveyor =$1 AND id_survey =$2
-                    `,[id_surveyor,id_survey])
+                    `,[candidate.id_surveyor,id_survey])
                 }
             } else {
                 await query(`
