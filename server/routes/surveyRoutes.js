@@ -13,6 +13,7 @@ router.post('/createSurveyDraft',authenticate,surveyController.createSurveyDraft
 router.post('/createSurveyPayment/:id_draft',surveyController.createSurveyPayment);
 router.post('/uploadAnswer/:id_survey',authenticate,surveyController.uploadAnswers,surveyController.submitSurveyorAnswer);
 router.post('/:id_survey/acceptSurveyorAnswer',surveyController.accSurveyorAnswer);
+router.post('/:id_survey/revisiSurveyorAnswer',surveyController.revisiSurveyorAnswer);
 router.delete('/:id_luaran/deleteAnswer',surveyController.deleteSurveyAnswer)
 router.delete('/deleteATask',surveyController.deleteASurvey);
 
