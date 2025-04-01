@@ -579,6 +579,10 @@ exports.accSurveyorAnswer = async(req,res) =>{
 
     //panggil fungsi yang memberi notifikasi ke admin mengenai jumlah kompensasi, nomor rekening, nama_bank
     sendNotificationtoAdmin(id_survey, infoSurveyor.nama_lengkap, infoSurveyor.kompensasi, infoSurveyor.nama_bank, infoSurveyor.email, infoSurveyor.nomor_rekening)
+
+    res.status(200).json({
+      message:"succes menerima jawaban surveyor"
+    })
   } catch (error) {
     console.error("Error ketike menerima jawaban surveyor",error);
     res.status(500).json({
