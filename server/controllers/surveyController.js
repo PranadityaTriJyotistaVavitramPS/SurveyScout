@@ -541,10 +541,15 @@ exports.showSurveyorAnswer = async(req,res)=>{
 
 //menerima jawaban surveyor
 exports.accSurveyorAnswer = async(req,res) =>{
-  const{id_survey} = req.body
+  const{id_survey} = req.params
   try {
     //cari id_luaran
     const infoSurvey = await query(`SELECT id_luaran,kompensasi,id_survey FROM survey_table WHERE id_survey =$1`,[id_survey])
+    if(infoSurvey.rows === 0){
+      return res.status(404).json({
+        message:"Survey Tidak ditemukan"
+      })
+    }
     const {id_luaran} = infoSurvey.rows[0]
     const targetSurveyor = await query(`
       SELECT id_surveyor 
