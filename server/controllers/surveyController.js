@@ -300,11 +300,11 @@ function formatCreatedAt(timeline) {
     
     // Format waktu menjadi jam dan menit (contoh: 13:40 WIB)
     const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-    const formattedTime = timelineDate.toLocaleTimeString('id-ID', timeOptions);
+    const formattedTime = new Intl.DateTimeFormat('id-ID', timeOptions).format(deadlineDate);
     
     // Format tanggal menjadi (contoh: 12 Februari 2024)
     const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = timelineDate.toLocaleDateString('id-ID', dateOptions);
+    const formattedDate = new Intl.DateTimeFormat('id-ID', dateOptions).format(deadlineDate);
     
     
     return `Diunggah pada ${formattedTime} WIB, ${formattedDate}`;
