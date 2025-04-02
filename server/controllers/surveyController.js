@@ -230,11 +230,11 @@ const formatDeadline = (deadlineDate) => {
 
     // Format waktu menjadi jam dan menit (contoh: 13:40 WIB)
     const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-    const formattedTime = deadlineDate.toLocaleTimeString('id-ID', timeOptions);
+    const formattedTime = new Intl.DateTimeFormat('id-ID', timeOptions).format(deadlineDate);
 
     // Format tanggal menjadi (contoh: 12 Februari 2024)
     const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = deadlineDate.toLocaleDateString('id-ID', dateOptions);
+    const formattedDate = new Intl.DateTimeFormat('id-ID', dateOptions).format(deadlineDate);
 
     // Gabungkan semuanya
     return `${formattedTime} WIB, ${formattedDate} (${status})`;
@@ -300,11 +300,11 @@ function formatCreatedAt(timeline) {
     
     // Format waktu menjadi jam dan menit (contoh: 13:40 WIB)
     const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-    const formattedTime = new Intl.DateTimeFormat('id-ID', timeOptions).format(deadlineDate);
+    const formattedTime = timelineDate.toLocaleTimeString('id-ID', timeOptions);
     
     // Format tanggal menjadi (contoh: 12 Februari 2024)
     const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = new Intl.DateTimeFormat('id-ID', dateOptions).format(deadlineDate);
+    const formattedDate = timelineDate.toLocaleDateString('id-ID', dateOptions);
     
     
     return `Diunggah pada ${formattedTime} WIB, ${formattedDate}`;
