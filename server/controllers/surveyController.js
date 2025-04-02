@@ -682,7 +682,7 @@ exports.getSurveyDetail = async (req, res) => {
       // Kirim response
       res.status(200).json({
           message: "Success",
-          data: { ...surveyDetail, tenggat_pengerjaan: formattedDateDeadline, created_at:formattedDateCreatedAt} // Menggunakan spread dengan benar
+          data: { ...surveyDetail, created_at:formattedDateCreatedAt} // Menggunakan spread dengan benar
       });
 
   } catch (error) {
