@@ -3,6 +3,7 @@ const midtransClient = require("midtrans-client");
 const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
+const {formatDeadline} = require('./surveyController'); 
 
 
 function formatCreatedAt(timeline) {
@@ -20,70 +21,6 @@ function formatCreatedAt(timeline) {
     
     return `Diunggah pada ${formattedTime} WIB, ${formattedDate}`;
 }
-
-const formatDeadline = (deadlineDate) => {
-    const today = new Date();
-    let timeDiff = deadlineDate - today;
-    const diffInSeconds = timeDiff / 1000;
-    const diffInMinutes = diffInSeconds / 60;
-    const diffInHours = diffInMinutes / 60;
-    const diffInDays = diffInHours / 24;
-    const diffInWeeks = diffInDays / 7;
-    const diffInMonths = diffInDays / 30;
-    const diffInYears = diffInMonths / 12;
-
-    let status = '';
-
-    // Jika deadline sudah lewat
-    if (timeDiff < 0) {
-        if (diffInYears*-1 >= 1) {
-            status = `${Math.floor(diffInYears*-1)} tahun lalu`;
-          } else if (diffInMonths*-1 >= 1) {
-            status = `${Math.floor(diffInMonths*-1)} bulan lalu`;
-          } else if (diffInWeeks*-1 >= 1) {
-            status = `${Math.floor(diffInWeeks*-1)} minggu lalu`;
-          } else if (diffInDays*-1 >= 1) {
-            status = `${Math.floor(diffInDays*-1)} hari lalu`;
-          } else if (diffInHours*-1 >= 1) {
-            status = `${Math.floor(diffInHours*-1)} jam lalu`;
-          } else if (diffInMinutes*-1 >= 1) {
-            status = `${Math.floor(diffInMinutes*-1)} menit lalu`;
-          } else {
-            status = `${Math.floor(diffInSeconds*-1)} detik lalu`;
-          }
-    }
-
-     else {
-      // Jika deadline masih akan datang
-      if (diffInYears >= 1) {
-        status = `${Math.floor(diffInYears)} tahun lagi`;
-      } else if (diffInMonths >= 1) {
-        status = `${Math.floor(diffInMonths)} bulan lagi`;
-      } else if (diffInWeeks >= 1) {
-        status = `${Math.floor(diffInWeeks)} minggu lagi`;
-      } else if (diffInDays >= 1) {
-        status = `${Math.floor(diffInDays)} hari lagi`;
-      } else if (diffInHours >= 1) {
-        status = `${Math.floor(diffInHours)} jam lagi`;
-      } else if (diffInMinutes >= 1) {
-        status = `${Math.floor(diffInMinutes)} menit lagi`;
-      } else {
-        status = `${Math.floor(diffInSeconds)} detik lagi`;
-      }
-    }
-
-    // Format waktu menjadi jam dan menit (contoh: 13:40 WIB)
-    const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-    const formattedTime = deadlineDate.toLocaleTimeString('id-ID', timeOptions);
-
-    // Format tanggal menjadi (contoh: 12 Februari 2024)
-    const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = deadlineDate.toLocaleDateString('id-ID', dateOptions);
-
-    // Gabungkan semuanya
-    return `${formattedTime} WIB, ${formattedDate} (${status})`;
-};
-
 
 
 const trackRecruitmenStatus = (time) =>{
@@ -334,88 +271,61 @@ exports.clientProjects = async (req, res) => {
       const ClientData = result.rows;
       const formattedData = [];
       for (const project of ClientData) {
-          const { created_at, tenggat_pengerjaan, id_survey, order_id, jumlah_responden} = project;
-          const jumlah_pekerja = parseInt(jumlah_responden);
-          
-          if (id_survey && id_survey.startsWith('ASD') || order_id && order_id.startsWith('SURVEY') ) {
+          const { id_survey, order_id} = project;
+          if ((id_survey && id_survey.startsWith('ASD')) || (order_id && order_id.startsWith('SURVEY')) ) {
               
               if(id_survey.startsWith('ASD')){
-                  //untuk cek kadaluwarsa nanti, nyari apakah sudah ada yang daftar
-                  const checkApplication = await query(`SELECT * FROM surveyor_application WHERE id_survey=$1`, [id_survey]);
-                  //untuk cek dikerjakan nanti, nyari apakah sudah ada yang diterima
-                  const checkIfWorkerExist = await query(`SELECT id_surveyor FROM surveyor_application WHERE id_survey =$1 AND status='diterima'`,[id_survey]);
-                  const AnswerPlace = await query(`SELECT * FROM survey_table WHERE id_survey=$1`, [id_survey]);
-                  const { id_luaran } = AnswerPlace.rows[0];
-                  const checkAnswerStatus = await query(`SELECT COUNT(*) FROM luaran_survey WHERE survey_id = $1 AND status ='diajukan'`, [id_luaran]);
-                  // Jika hasil query tidak kosong, berarti ada data yang cocok, return true
-                  let ada_jawaban =''
-                  if (checkAnswerStatus.rows[0].count > 0) {
-                      ada_jawaban = true;  // sudah ada jawaban
-                  } else {
-                      ada_jawaban = false;  // belum ada jawaban
-                  }
+                const { created_at, tenggat_pengerjaan, id_survey,id_luaran} = project;
 
-                  const freshStatus = trackRecruitmenStatus(created_at); 
-                  const deadlineStatus = trackDeadlineStatus(tenggat_pengerjaan);
+                const checkStatusApplication = await query(`SELECT * FROM surveyor_application WHERE id_survey =$1`,[id_survey])
+                const checkAnswerStatus = await query(`SELECT * FROM luaran_survey WHERE survey_id =$1 AND status ='pending'`,[id_luaran]);
 
-                //   //kadaluwarsa
-                //   if (freshStatus && checkApplication.rows.length === 0) {
-                //       await query(`UPDATE survey_table SET status_task = 'kadaluwarsa' WHERE id_survey = $1`, [id_survey]);
-                //   }
-                //   //peringatan
-                //   if (deadlineStatus && !ada_jawaban) {
-                //       await query(`UPDATE survey_table SET status_task = 'peringatan' WHERE id_survey =$1`, [id_survey]);
-                //   }
-                //   // //dikerjakan
-                //   if(checkIfWorkerExist.rows.length > 0){
-                //       await query(`UPDATE survey_table SET status_task ='dikerjakan' WHERE id_survey=$1`,[id_survey]);
-                //   }
-                //   //ditinjau
-                //   if(ada_jawaban){
-                //       await query(`UPDATE survey_table SET status_task = 'ditinjau' WHERE id_survey = $1`,[id_survey]);
-                //   }
+                
+                const isSurveyExpired = trackRecruitmenStatus(created_at)
+                const isSurveyDeadline = trackDeadlineStatus(tenggat_pengerjaan)
+                //kadaluwarsa
+                if(isSurveyExpired && checkStatusApplication.rows.length === 0){
+                    await query(`
+                        UPDATE survey_table
+                        SET status_task = 'kadaluwarsa'
+                        WHERE id_survey =$1
+                    `,[id_survey])
+                }
 
+                //peringatan
+                if(isSurveyDeadline){
+                    await query(`
+                        UPDATE survey_table
+                        SET status_task = 'peringatan'
+                        WHERE id_survey=$1    
+                    `,[id_survey])
+                }
+                //dikerjakan
+                if(checkStatusApplication.rows.some(row => row.status === 'mengerjakan')){
+                    await query(`
+                        UPDATE survey_table
+                        SET status_task = 'dikerjakan'
+                        WHERE id_survey =$1    
+                    `,[id_survey])
+                }
+                
+                //ditinjau
+                if(checkAnswerStatus.rows.length >= 1){
+                    await query(`
+                        UPDATE survey_table
+                        SET status_task ='ditinjau'
+                        WHERE id_survey=$1
+                    `,[id_survey])
+                }
               }               
               formattedData.push({
                   ...project
               });
 
-          } else if (id_survey && id_survey.startsWith('RES') || order_id && order_id.startsWith('RESPOND')) {
+          } else if ((id_survey && id_survey.startsWith('RES')) || (order_id && order_id.startsWith('RESPOND'))) {
           
               if(id_survey.startsWith('RES')){
-                  console.log('untuk id ini:',id_survey,'statusnya:')
-                  //cek apakah ada pendaftar(status kadaluwarsa)
-                  const checkApplication = await query(`SELECT * FROM respondent_application WHERE id_respond=$1`, [id_survey]);
-                  //cek apakah ada pendaftar yang keterima (status dikerjakan)
-                  const checkIfWorkerExist = await query(`SELECT id_responden FROM respondent_application WHERE id_respond =$1 AND status='diterima'`,[id_survey]);
-                  //untuk ngecek (status selesai)
-                  const AnswerPlace = await query(`SELECT id_luaran FROM respond_table WHERE id_respond = $1`,[id_survey]);
-                  const {id_luaran} = AnswerPlace.rows[0];
-                  const AnswerStatus = await query(`SELECT status FROM luaran_respond WHERE id_luaran = $1 AND status ='selesai'`,[id_luaran])
-                  
-                  //untuk ngcek (status ditinjau)
-                  const checkAnswerStatus =await query(`SELECT COUNT (*) FROM luaran_respond WHERE respond_id = $1 AND status = 'diajukan'`,[id_luaran])
-                  let ada_jawaban= ''
-                  if (checkAnswerStatus.rows[0].count > 0) {
-                      ada_jawaban = true;  //sudah ada jawaban
-                  } else {
-                      ada_jawaban = false;  // belum ada jawaban
-                  }
-          
-
-                //   //kadaluwarsa
-                //   if (trackRecruitmenStatus(created_at) && checkApplication.rows.length === 0) {
-                //       await query(`UPDATE respond_table SET status_task = 'kadaluwarsa' WHERE id_respond = $1`, [id_survey]);
-                //   }
-                //   //peringatan
-                //   if (trackDeadlineStatus(tenggat_pengerjaan) && !ada_jawaban) {
-                  
-                //       await query(`UPDATE respond_table SET status_task = 'peringatan' WHERE id_respond =$1`, [id_survey]);
-                //   }
-                  //dikerjakan
-                  if (checkIfWorkerExist.rows.length > 0){
-                      await query(`UPDATE respond_table SET status_task= 'dikerjakan' WHERE id_respond =$1`,[id_survey]);
-                  }
+                
               
               } 
               formattedData.push({
