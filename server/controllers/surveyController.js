@@ -612,8 +612,8 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
       await query(`
         UPDATE survey_table 
         SET status_revisi = 'true',
-            tenggat_pengerjaan = $1,
-            status_task = 'dikerjakan',
+          tenggat_pengerjaan = $1,
+          status_task = 'dikerjakan'
         WHERE id_survey=$2
         RETURNING *
       `, [formattedDate,id_survey]);
