@@ -11,7 +11,7 @@ const {sendNotificationtoAdmin} = require('./otpController')
 
 //memasukkan task yang telah dibuat ke draft (belum dilakukan pembayaran)
 exports.createSurveyDraft = async(req,res) =>{
-    const{nama_proyek, deskripsi_proyek, tenggat_pengerjaan, lokasi, alamat, keahlian, 
+    const{nama_proyek, deskripsi_proyek, tenggat_pengerjaan, lokasi, keahlian, 
         kompensasi,tipe_hasil
     } = req.body
     const id_client = req.user.id_user;
@@ -177,7 +177,7 @@ exports.moveDraftToSurvey = async (order_id) => {
     }
 };
 
-const formatDeadline = (deadlineDate) => {
+exports.formatDeadline = (deadlineDate) => {
     const today = new Date();
     let timeDiff = deadlineDate - today;
     const diffInSeconds = timeDiff / 1000;
@@ -255,60 +255,6 @@ const formatDeadline = (deadlineDate) => {
 
   // Gabungkan semuanya
   return `${formattedTime}, ${formattedDate} (${status})`;
-};
-
-const formatDeadlineWordOnly = (deadlineDate) => {
-    const today = new Date();
-    let timeDiff = deadlineDate - today;
-    const diffInSeconds = timeDiff / 1000;
-    const diffInMinutes = diffInSeconds / 60;
-    const diffInHours = diffInMinutes / 60;
-    const diffInDays = diffInHours / 24;
-    const diffInWeeks = diffInDays / 7;
-    const diffInMonths = diffInDays / 30;
-    const diffInYears = diffInMonths / 12;
-
-    let status = '';
-
-    // Jika deadline sudah lewat
-    if (timeDiff < 0) {
-        if (diffInYears*-1 >= 1) {
-            status = `${Math.floor(diffInYears*-1)} tahun lalu`;
-          } else if (diffInMonths*-1 >= 1) {
-            status = `${Math.floor(diffInMonths*-1)} bulan lalu`;
-          } else if (diffInWeeks*-1 >= 1) {
-            status = `${Math.floor(diffInWeeks*-1)} minggu lalu`;
-          } else if (diffInDays*-1 >= 1) {
-            status = `${Math.floor(diffInDays*-1)} hari lalu`;
-          } else if (diffInHours*-1 >= 1) {
-            status = `${Math.floor(diffInHours*-1)} jam lalu`;
-          } else if (diffInMinutes*-1 >= 1) {
-            status = `${Math.floor(diffInMinutes*-1)} menit lalu`;
-          } else {
-            status = `${Math.floor(diffInSeconds*-1)} detik lalu`;
-          }
-    }
-
-     else {
-      // Jika deadline masih akan datang
-      if (diffInYears >= 1) {
-        status = `${Math.floor(diffInYears)} tahun lagi`;
-      } else if (diffInMonths >= 1) {
-        status = `${Math.floor(diffInMonths)} bulan lagi`;
-      } else if (diffInWeeks >= 1) {
-        status = `${Math.floor(diffInWeeks)} minggu lagi`;
-      } else if (diffInDays >= 1) {
-        status = `${Math.floor(diffInDays)} hari lagi`;
-      } else if (diffInHours >= 1) {
-        status = `${Math.floor(diffInHours)} jam lagi`;
-      } else if (diffInMinutes >= 1) {
-        status = `${Math.floor(diffInMinutes)} menit lagi`;
-      } else {
-        status = `${Math.floor(diffInSeconds)} detik lagi`;
-      }
-    }
-    // Gabungkan semuanya
-    return `(${status})`;
 };
 
 function formatCreatedAt(timeline) {

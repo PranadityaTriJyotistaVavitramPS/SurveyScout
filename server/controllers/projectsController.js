@@ -144,7 +144,7 @@ exports.getProjectsDetail = async(req,res) =>{
                 const {tenggat_pengerjaan,created_at} = respondData;
                 const fixTenggatPengerjaan = formatDeadline(tenggat_pengerjaan);
                 const fixCreatedTime = formatCreatedAt(created_at);
-            
+    
                 res.status(200).json({
                     status:"success",
                     data: {
