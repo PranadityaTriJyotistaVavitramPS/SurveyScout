@@ -604,6 +604,9 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
     const workerInfo = await query(`SELECT nomor_telepon FROM surveyor_table WHERE id_surveyor =$1`,[id_surveyor])
     const nomorTelepon = workerInfo.rows.length > 0 ? workerInfo.rows[0].nomor_telepon : null;
 
+    const formatDate = moment.tz(tenggat_pengerjaan,'HH:mm, DD MMMM YYYY', 'Asia/Jakarta');
+    const formattedDate = formatDate.format('YYYY-MM-DD HH:mm:ss');
+
     if(status_revisi == false){
       //update status_revisi = true, tenggat_pengerjaan, status_task = dikerjakan, status = mengerjakan
       await query(`
@@ -613,7 +616,7 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
             status_task = 'dikerjakan',
         WHERE id_survey=$2
         RETURNING *
-      `, [tenggat_pengerjaan,id_survey]);
+      `, [formattedDate,id_survey]);
 
       await query(`
         UPDATE surveyor_application
