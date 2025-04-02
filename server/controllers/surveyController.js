@@ -178,11 +178,6 @@ exports.moveDraftToSurvey = async (order_id) => {
 };
 
 const formatDeadline = (deadlineDate) => {
-    if (typeof deadlineDate === 'string' && !deadlineDate.includes('+')) {
-        deadlineDate = new Date(deadlineDate.replace(' ', 'T') + '+07:00'); // Asumsi WIB
-    } else {
-        deadlineDate = new Date(deadlineDate);
-    }
     const today = new Date();
     let timeDiff = deadlineDate - today;
     const diffInSeconds = timeDiff / 1000;
@@ -233,16 +228,33 @@ const formatDeadline = (deadlineDate) => {
       }
     }
 
-    // Format waktu menjadi jam dan menit (contoh: 13:40 WIB)
-    const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
-    const formattedTime = new Intl.DateTimeFormat('id-ID', timeOptions).format(deadlineDate);
+   // Format waktu menjadi jam dan menit (UTC) dan tambahkan WIB secara manual
+  const hours = deadlineDate.getUTCHours().toString().padStart(2, "0");
+  const minutes = deadlineDate.getUTCMinutes().toString().padStart(2, "0");
+  const formattedTime = `${hours}:${minutes} WIB`;
 
-    // Format tanggal menjadi (contoh: 12 Februari 2024)
-    const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = new Intl.DateTimeFormat('id-ID', dateOptions).format(deadlineDate);
+  // Format tanggal menjadi (UTC)
+  const day = deadlineDate.getUTCDate();
+  const monthNames = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+  const month = monthNames[deadlineDate.getUTCMonth()];
+  const year = deadlineDate.getUTCFullYear();
+  const formattedDate = `${day} ${month} ${year}`;
 
-    // Gabungkan semuanya
-    return `${formattedTime} WIB, ${formattedDate} (${status})`;
+  // Gabungkan semuanya
+  return `${formattedTime}, ${formattedDate} (${status})`;
 };
 
 const formatDeadlineWordOnly = (deadlineDate) => {
@@ -682,7 +694,7 @@ exports.getSurveyDetail = async (req, res) => {
       // Kirim response
       res.status(200).json({
           message: "Success",
-          data: { ...surveyDetail, created_at:formattedDateCreatedAt} // Menggunakan spread dengan benar
+          data: { ...surveyDetail, tenggat_pengerjaan: formattedDateDeadline, created_at:formattedDateCreatedAt} // Menggunakan spread dengan benar
       });
 
   } catch (error) {
