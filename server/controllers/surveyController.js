@@ -599,6 +599,10 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
   try {
     const outputTarget = await query(`SELECT id_luaran,status_revisi FROM survey_table WHERE id_survey =$1`,[id_survey])
     const {id_luaran,status_revisi} = outputTarget.rows[0]
+    const workerTarget = await query(`SELECT id_surveyor FROM surveyor_application WHERE id_survey =$1 AND status != 'ditolak'`,[id_survey])
+    const {id_surveyor} = workerTarget.rows[0]
+    const workerInfo = await query(`SELECT nomor_telepon FROM surveyor_table WHERE id_surveyor =$1`,[id_surveyor])
+    const nomorTelepon = workerInfo.rows.length > 0 ? workerInfo.rows[0].nomor_telepon : null;
 
     if(status_revisi == false){
       //update status_revisi = true, tenggat_pengerjaan, status_task = dikerjakan, status = mengerjakan
@@ -607,8 +611,9 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
         SET status_revisi = 'true',
             tenggat_pengerjaan = $1,
             status_task = 'dikerjakan',
+        WHERE id_survey=$2
         RETURNING *
-      `, [tenggat_pengerjaan]);
+      `, [tenggat_pengerjaan,id_survey]);
 
       await query(`
         UPDATE surveyor_application
@@ -630,7 +635,8 @@ exports.revisiSurveyorAnswer = async(req,res) =>{
       res.status(200).json({
         status:"1",
         message:"berhasil mengajukan revisi",
-        data_revisi:task_revisi
+        data_revisi:task_revisi,
+        nomor_telepon:nomorTelepon
       })
     }else{
       return res.status(400).json({
