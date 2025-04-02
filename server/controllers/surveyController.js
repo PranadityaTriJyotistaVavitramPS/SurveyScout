@@ -178,6 +178,11 @@ exports.moveDraftToSurvey = async (order_id) => {
 };
 
 const formatDeadline = (deadlineDate) => {
+    if (typeof deadlineDate === 'string' && !deadlineDate.includes('+')) {
+        deadlineDate = new Date(deadlineDate.replace(' ', 'T') + '+07:00'); // Asumsi WIB
+    } else {
+        deadlineDate = new Date(deadlineDate);
+    }
     const today = new Date();
     let timeDiff = deadlineDate - today;
     const diffInSeconds = timeDiff / 1000;
