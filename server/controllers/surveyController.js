@@ -374,7 +374,7 @@ exports.surveyorProjects = async(req,res) =>{
 
         const infoSurvey = await query(`
           SELECT id_survey,nama_proyek,lokasi,
-          tipe_hasil,kompensasi,tenggat_pengerjaan,status_revisi
+          tipe_hasil,kompensasi,tenggat_pengerjaan,status_revisi,task_revisi
           FROM survey_table 
           WHERE id_survey =$1
         `,[id_survey])
@@ -395,7 +395,8 @@ exports.surveyorProjects = async(req,res) =>{
           status_surveyor:status,
           tipe_hasil:infoSurvey.rows[0].tipe_hasil,
           tenggat_pengerjaan:tenggat_pengerjaan,
-          status_revisi:infoSurvey.rows[0].status_revisi
+          status_revisi:infoSurvey.rows[0].status_revisi,
+          task_revisi:infoSurvey.rows[0].task_revisi
         };
       })
     )
