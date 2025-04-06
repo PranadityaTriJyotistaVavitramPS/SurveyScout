@@ -6,7 +6,7 @@ moment.locale('id');
 multer = require('multer');
 const {uploadSurveyorAnswer,deleteFileFromGoogleStorage,getFileNameFromURL} = require('./uploadFile')
 const {sendNotificationtoAdmin} = require('./otpController')
-const {formatDeadline} = exports;
+
 
 
 
@@ -673,7 +673,7 @@ exports.getAppliedSurveyDetail = async (req, res) => {
       const surveyDetail = result.rows[0];
 
       // Format tanggal tenggat_pengerjaan
-      const formattedDateDeadline = formatDeadline(surveyDetail.tenggat_pengerjaan);
+      const formattedDateDeadline = exports.formatDeadline(surveyDetail.tenggat_pengerjaan);
       const formattedDateCreatedAt = formatCreatedAt(surveyDetail.created_at)
 
       // Kirim response
