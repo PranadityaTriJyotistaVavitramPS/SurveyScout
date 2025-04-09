@@ -489,6 +489,11 @@ exports.showSurveyorAnswer = async(req,res)=>{
         WHERE survey_id = $1 
         AND status IN ('pending', 'selesai')`
     ,[id_luaran]);
+    if(surveyQueryAnswer.rows.length === 0){
+      return res.status(404).json({
+        message:`masih belum ada jawaban untuk survey dengan id ${id_survey}`
+      })
+    }
     const surveyAnswer = surveyQueryAnswer.rows
 
     res.status(200).json({
