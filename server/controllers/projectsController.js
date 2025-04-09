@@ -333,12 +333,8 @@ exports.clientProjects = async (req, res) => {
                     WHERE id_respond =$1 AND status != 'ditolak'`,
                 [id_survey])
 
-                if(respondenStatusQuery.rows.length === 0){
-                    return res.status(404).json({
-                        message:"tidak ditemukan pendaftar"
-                    })
-                }
-                const respondenStatus = respondenStatusQuery.rows.map(item => item.status)
+                if(respondenStatusQuery.rows.length >= 1){
+                    const respondenStatus = respondenStatusQuery.rows.map(item => item.status)
                 const isDeadline = respondenStatusQuery.rows.find(responden=>responden.status === 'deadline')
                 if(!isDeadline){
                     const statusPalingAwal = respondenStatus.reduce((minStatus,statusNow) =>{
@@ -372,6 +368,8 @@ exports.clientProjects = async (req, res) => {
                             WHERE id_respond =$1    
                         `,[id_survey])
                     }
+                }
+   
                 }
               } 
               formattedData.push({
