@@ -70,7 +70,7 @@ const upload = multer({ storage: multerStorage });
 exports.uploadProfileImage = upload.single('profile_picture');
 
 exports.updateClientProfile = async(req,res) =>{
-    const {nik,nama_lengkap,pin_akses, jenis_kelamin, nomor_telepon, nama_perusahaan, jenis_usaha, nomor_rekening,nama_bank,
+    const {nik,nama_lengkap,jenis_kelamin, nomor_telepon, nama_perusahaan, jenis_usaha, nomor_rekening,nama_bank,
         tanggal_lahir
     }= req.body
     const profile_picture = req.file;
@@ -88,7 +88,6 @@ exports.updateClientProfile = async(req,res) =>{
         if(nama_perusahaan) updatedFields.perusahaan = nama_perusahaan;
         if(jenis_usaha) updatedFields.jenis_usaha = jenis_usaha
         if(nomor_rekening) updatedFields.nomor_rekening = nomor_rekening
-        if(pin_akses) updatedFields.password = pin_akses;
         if(nama_bank) updatedFields.nama_bank = nama_bank;
         if(tanggal_lahir) updatedFields.tanggal_lahir = tanggal_lahir;
 
