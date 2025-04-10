@@ -89,7 +89,10 @@ exports.updateClientProfile = async(req,res) =>{
         if(jenis_usaha) updatedFields.jenis_usaha = jenis_usaha
         if(nomor_rekening) updatedFields.nomor_rekening = nomor_rekening
         if(nama_bank) updatedFields.nama_bank = nama_bank;
-        if(tanggal_lahir) updatedFields.tanggal_lahir = tanggal_lahir;
+        if(tanggal_lahir){
+            const formatDate = moment.tz(tanggal_lahir,'DD MMMM YYYY','Asia/Jakarta').format('YYYY-MM-DD');
+            updatedFields.tanggal_lahir = formatDate;
+        } 
 
         const currentProfilePicture = await query(`SELECT profile_picture FROM client_table WHERE id_client = $1`, [id_user]);
         const oldFileUrl = currentProfilePicture.rows[0]?.profile_picture;
