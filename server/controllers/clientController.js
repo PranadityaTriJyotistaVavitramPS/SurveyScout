@@ -93,14 +93,14 @@ exports.updateClientProfile = async(req,res) =>{
             const formatDate = moment.tz(tanggal_lahir,'DD MMMM YYYY','Asia/Jakarta').format('YYYY-MM-DD');
             updatedFields.tanggal_lahir = formatDate;
         } 
-        const currentProfilePicture = await query(`SELECT profile_picture FROM client_table WHERE id_client = $1`, [id_user]);
-        const oldFileUrl = currentProfilePicture.rows[0]?.profile_picture;
 
         if(profile_picture){
+            const currentProfilePicture = await query(`SELECT profile_picture FROM client_table WHERE id_client = $1`, [id_user]);
+            const oldFileUrl = currentProfilePicture.rows[0]?.profile_picture;    
             const filePath = await uploadPictureFile(profile_picture); // filePath adalah URL atau path file yang diupload
             updatedFields.profile_picture = filePath;
 
-            if(oldFileUrl){
+            if(!oldFileUrl.startsWith('https://lh3.googleusercontent.com')){
                 const fileName = getFileNameFromURL(oldFileUrl);
                 await deleteFileFromGoogleStorage(fileName)
             }
