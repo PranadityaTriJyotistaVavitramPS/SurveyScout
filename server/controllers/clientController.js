@@ -85,7 +85,7 @@ exports.updateClientProfile = async(req,res) =>{
         if(email) updatedFields.email = email;
         if(jenis_kelamin) updatedFields.jenis_kelamin = jenis_kelamin;
         if(nomor_telepon) updatedFields.nomor_telepon = nomor_telepon;
-        if(nama_perusahaan) updatedFields.perusahaan = nama_perusahaan;
+        if(nama_perusahaan) updatedFields.nama_perusahaan = nama_perusahaan;
         if(jenis_usaha) updatedFields.jenis_usaha = jenis_usaha
         if(nomor_rekening) updatedFields.nomor_rekening = nomor_rekening
         if(nama_bank) updatedFields.nama_bank = nama_bank;
