@@ -71,7 +71,7 @@ exports.uploadProfileImage = upload.single('profile_picture');
 
 exports.updateClientProfile = async(req,res) =>{
     const {nik,nama_lengkap,jenis_kelamin, nomor_telepon, nama_perusahaan, jenis_usaha, nomor_rekening,nama_bank,
-        tanggal_lahir
+        tanggal_lahir,pin_akses
     }= req.body
     const profile_picture = req.file;
     const {id_user,email} = req.user; 
@@ -92,7 +92,22 @@ exports.updateClientProfile = async(req,res) =>{
         if(tanggal_lahir){
             const formatDate = moment.tz(tanggal_lahir,'DD MMMM YYYY','Asia/Jakarta').format('YYYY-MM-DD');
             updatedFields.tanggal_lahir = formatDate;
-        } 
+        }
+        if(pin_akses){
+            //masukkan ke generateOTP
+            generateOTP(email,req,res);
+            //kita ambil otpnya menggunakan getOTP
+            const otp= await getStoredOTP(email);
+            //validasi langsung 
+            const verifiedOTP = await verifyOTP(email,otp)
+            if(verifiedOTP == true){
+                updatedFields.pin_akses = pin_akses
+            } else {
+                return res.status(403).json({
+                    message:"kode otp salah"
+                })
+            }
+        }        
 
         if(profile_picture){
             const currentProfilePicture = await query(`SELECT profile_picture FROM client_table WHERE id_client = $1`, [id_user]);

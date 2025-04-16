@@ -119,8 +119,6 @@ exports.updateSurveyorProfile = async(req,res) =>{
         }
         if(nama_bank) updatedFields.nama_bank = nama_bank;
         if(keahlian) updatedFields.keahlian = keahlian;
-
-
         if(profile_picture){    
             const currentProfilePicture = await query(`SELECT profile_picture FROM surveyor_table WHERE id_surveyor = $1`, [id_user]);
             const oldFileUrl = currentProfilePicture.rows[0]?.profile_picture;
@@ -134,8 +132,12 @@ exports.updateSurveyorProfile = async(req,res) =>{
         }
 
         if(cv_ats){
+            //cari file url yang lama
+            const currentCV = await query(`SELECT `)
             const filePath = await uploadCVFiles(cv_ats);
             updatedFields.cv_ats = filePath
+
+
 
         }
         //kita buat supaya field yang ingin di update aja yang bakal masuk di query (intinya biar dinamis)
