@@ -5,7 +5,7 @@ const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
 const {uploadPictureFile,getFileNameFromURL,deleteFileFromGoogleStorage,uploadCVFiles} = require('./uploadFile.js');
-const {generateOTP,getStoredOTP,verifyOTP, verifyOTP} = require('./otpController.js')
+const {generateOTP,getStoredOTP, verifyOTP} = require('./otpController.js')
 
 
 // Konfigurasi multer storage
@@ -110,8 +110,8 @@ exports.updateSurveyorProfile = async(req,res) =>{
             const storedOTP= getStoredOTP(email,req,res);
             const otp = storedOTP.otp
             //validasi langsung 
-            const verifyOTP = verifyOTP(email,otp,req,res)
-            if(verifyOTP.status == 200){
+            const verifiedOTP = verifyOTP(email,otp,req,res)
+            if(verifiedOTP.status == 200){
                 updatedFields.pin_akses = pin_akses
             } else {
                 return res.status(403).json({

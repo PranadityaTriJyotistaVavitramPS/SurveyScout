@@ -155,10 +155,7 @@ exports.verifyOTP = async (email, otp,req, res) => {
       }
   
       if (storedOtp === otp) {
-        // OTP is correct, proceed to password reset
-        // Optionally, delete the OTP from Redis
         await redisClient.del(email);
-  
         // Generate a password reset token (e.g., JWT)
         const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '15m' });
   
