@@ -5,6 +5,7 @@ const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
 const {uploadPictureFile,getFileNameFromURL,deleteFileFromGoogleStorage} = require('./uploadFile.js');
+const {generateOTP,getStoredOTP, verifyOTP} = require('./otpController.js')
 
 
 //sign-in client

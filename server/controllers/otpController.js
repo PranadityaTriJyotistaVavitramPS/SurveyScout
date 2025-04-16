@@ -81,7 +81,7 @@ exports.sendNotificationtoAdmin = async (id_survey,nama_lengkap,kompensasi,nama_
 
 
 // Controller: Generate OTP
-exports.generateOTP = (email,req,res) => {
+exports.generateOTP = (email) => {
   if (!email || !validateEmail(email)) {
     return res.status(400).json({ error: "Invalid email address!" });
   }
@@ -107,13 +107,10 @@ exports.generateOTP = (email,req,res) => {
       if (process.env.NODE_ENV === "development") {
         console.log(`OTP sent successfully to ${email}: ${otp}`);
       }
-      res.status(200).json({
-        message: "OTP sent successfully to your email!",
-      });
+      return true
     })
     .catch((err) => {
       console.error("Error sending OTP via email:", err);
-      res.status(500).json({ error: "Internal Server Error" });
     });
 };
 
