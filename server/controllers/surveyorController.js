@@ -43,7 +43,7 @@ exports.uploadSurveyorFiles = upload.fields([
 exports.signInSurveyor = async(req,res) =>{
     console.log('Received body:', req.body);  // Log fields selain file
     console.log('Received file:', req.file);
-    const file = req.file.file;
+    const file = req.files['file']?.[0];
     const id_user = req.user.id_user;
     const{nama_lengkap,jenis_kelamin,tanggal_lahir,nomor_telepon,nik,nama_bank,nomor_rekening,
         domisili,pin_akses,keahlian
@@ -92,8 +92,8 @@ exports.signInSurveyor = async(req,res) =>{
 
 exports.updateSurveyorProfile = async(req,res) =>{
     const {nomor_telepon,domisili,nomor_rekening,pin_akses,nama_bank, keahlian}= req.body
-    const profile_picture = req.file.profile_picture;
-    const cv_ats = req.file.file
+    const profile_picture = req.files['profile_picture']?.[0];
+    const cv_ats = req.files['file']?.[0]
     const {id_user,email} = req.user; 
 
     try {
