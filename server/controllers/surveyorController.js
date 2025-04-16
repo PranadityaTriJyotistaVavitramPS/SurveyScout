@@ -5,6 +5,7 @@ const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
 const {uploadPictureFile,getFileNameFromURL,deleteFileFromGoogleStorage,uploadCVFiles} = require('./uploadFile.js');
+const {generateOTP,getStoredOTP,verifyOTP, verifyOTP} = require('./otpController.js')
 
 
 // Konfigurasi multer storage
@@ -33,14 +34,16 @@ const upload = multer({
     fileFilter: fileFilter 
 });
 
-exports.uploadProfile = upload.single('file');  // upload satu file baik gambar maupun PDF
-
+exports.uploadSurveyorFiles = upload.fields([
+    { name: 'file', maxCount: 1 },                // untuk CV
+    { name: 'profile_picture', maxCount: 1 }      // untuk foto
+  ]);
 
 //sign-in Surveyor
 exports.signInSurveyor = async(req,res) =>{
     console.log('Received body:', req.body);  // Log fields selain file
     console.log('Received file:', req.file);
-    const file = req.file;
+    const file = req.file.file;
     const id_user = req.user.id_user;
     const{nama_lengkap,jenis_kelamin,tanggal_lahir,nomor_telepon,nik,nama_bank,nomor_rekening,
         domisili,pin_akses,keahlian
@@ -88,38 +91,54 @@ exports.signInSurveyor = async(req,res) =>{
 
 
 exports.updateSurveyorProfile = async(req,res) =>{
-    const {nik,nama_lengkap,pin_akses, jenis_kelamin, nomor_telepon, nama_perusahaan, jenis_usaha, nomor_rekening,nama_bank,
-        tanggal_lahir
-    }= req.body
-    const profile_picture = req.file;
+    const {nomor_telepon,domisili,nomor_rekening,pin_akses,nama_bank, keahlian}= req.body
+    const profile_picture = req.file.profile_picture;
+    const cv_ats = req.file.file
     const {id_user,email} = req.user; 
 
     try {
         const updatedFields={};
 
-        if(nik) updatedFields.nik= nik;
-        if(nama_lengkap) updatedFields.nama_lengkap = nama_lengkap;
-        if(email) updatedFields.email = email;
-        if(jenis_kelamin) updatedFields.jenis_kelamin = jenis_kelamin;
+        if(domisili) updatedFields.domisili = domisili;
         if(nomor_telepon) updatedFields.nomor_telepon = nomor_telepon;
-        if(nama_perusahaan) updatedFields.perusahaan = nama_perusahaan;
-        if(jenis_usaha) updatedFields.jenis_usaha = jenis_usaha
         if(nomor_rekening) updatedFields.nomor_rekening = nomor_rekening
-        if(pin_akses) updatedFields.password = pin_akses;
+        if(pin_akses){
+            //masukkan ke generateOTP
+            req.body = email;
+            generateOTP(req,res);
+            //kita ambil otpnya menggunakan getOTP
+            const storedOTP= getStoredOTP(email,req,res);
+            const otp = storedOTP.otp
+            //validasi langsung 
+            const verifyOTP = verifyOTP(email,otp,req,res)
+            if(verifyOTP.status == 200){
+                updatedFields.pin_akses = pin_akses
+            } else {
+                return res.status(403).json({
+                    message:"kode otp salah"
+                })
+            }
+        }
         if(nama_bank) updatedFields.nama_bank = nama_bank;
-        if(tanggal_lahir) updatedFields.tanggal_lahir = tanggal_lahir;
+        if(keahlian) updatedFields.keahlian = keahlian;
 
-        const currentProfilePicture = await query(`SELECT profile_picture FROM client_table WHERE id_client = $1`, [id_user]);
-        const oldFileUrl = currentProfilePicture.rows[0]?.profile_picture;
 
-        if(profile_picture){
+        if(profile_picture){    
+            const currentProfilePicture = await query(`SELECT profile_picture FROM surveyor_table WHERE id_surveyor = $1`, [id_user]);
+            const oldFileUrl = currentProfilePicture.rows[0]?.profile_picture;
             const filePath = await uploadPictureFile(profile_picture); // filePath adalah URL atau path file yang diupload
             updatedFields.profile_picture = filePath;
 
-            if(oldFileUrl){
+            if(!oldFileUrl.startsWith('https://lh3.googleusercontent.com')){
                 const fileName = getFileNameFromURL(oldFileUrl);
                 await deleteFileFromGoogleStorage(fileName)
             }
+        }
+
+        if(cv_ats){
+            const filePath = await uploadCVFiles(cv_ats);
+            updatedFields.cv_ats = filePath
+
         }
         //kita buat supaya field yang ingin di update aja yang bakal masuk di query (intinya biar dinamis)
         const setFields = Object.keys(updatedFields).map((key,index) => `${key}=$${index+1}`).join(',');
@@ -127,17 +146,17 @@ exports.updateSurveyorProfile = async(req,res) =>{
 
         //gas update
         const result = await query(`
-            UPDATE client_table SET ${setFields} WHERE id_client= $${values.length + 1} RETURNING *
+            UPDATE surveyor_table SET ${setFields} WHERE id_surveyor= $${values.length + 1} RETURNING *
             `,[...values,id_user]
         )
 
         res.status(201).json({
-            message:'client data successfully updated',
+            message:'surveyor data successfully updated',
             data: result.rows[0]
         })
         
     } catch (error) {
-        console.error("Internal Server Error ketike melakukan update client profile", error.message);
+        console.error("Internal Server Error ketike melakukan update surveyor profile", error.message);
         res.status(500).json({
             message:"Internal Server Error"
         })

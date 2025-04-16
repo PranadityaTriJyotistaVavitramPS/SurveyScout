@@ -81,8 +81,8 @@ exports.sendNotificationtoAdmin = async (id_survey,nama_lengkap,kompensasi,nama_
 
 
 // Controller: Generate OTP
-exports.generateOTP = (req, res) => {
-  const { email } = req.body; // Replace `phoneNumber` with `email`
+exports.generateOTP = (req,res) => {
+  const { email } = req.body; 
   if (!email || !validateEmail(email)) {
     return res.status(400).json({ error: "Invalid email address!" });
   }
@@ -120,15 +120,13 @@ exports.generateOTP = (req, res) => {
 
 
 
-exports.getStoredOTP = async (req, res) => {
-    const { email } = req.body; // Get the email from the request body
-  
+exports.getStoredOTP = async (email,req, res) => {
     if (!email || !validateEmail(email)) {
       return res.status(400).json({ error: "Invalid email address!" });
     }
   
     try {
-      const otp = await redisClient.get(email); // Fetch OTP stored in Redis
+      const otp = await redisClient.get(email);
       if (otp) {
         return res.status(200).json({ email, otp });
       } else {
@@ -142,9 +140,7 @@ exports.getStoredOTP = async (req, res) => {
   
 
 //verify OTP
-exports.verifyOTP = async (req, res) => {
-    const { email, otp } = req.body;
-  
+exports.verifyOTP = async (email, otp,req, res) => {
     // Validate input
     if (!email || !otp) {
       return res.status(400).json({ error: "Email and OTP are required!" });
