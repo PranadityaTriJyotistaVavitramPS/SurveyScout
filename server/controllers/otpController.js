@@ -119,7 +119,7 @@ exports.generateOTP = (email,req,res) => {
 
 
 
-exports.getStoredOTP = async (email,req, res) => {
+exports.getStoredOTP = async (email) => {
     if (!email || !validateEmail(email)) {
       return res.status(400).json({ error: "Invalid email address!" });
     }
@@ -127,9 +127,7 @@ exports.getStoredOTP = async (email,req, res) => {
     try {
       const otp = await redisClient.get(email);
       if (otp) {
-        return res.status(200).json({ email, otp });
-      } else {
-        return res.status(404).json({ message: "OTP not found or expired!" });
+        return otp
       }
     } catch (err) {
       console.error("Error fetching OTP from Redis:", err);

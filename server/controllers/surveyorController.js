@@ -106,8 +106,7 @@ exports.updateSurveyorProfile = async(req,res) =>{
             //masukkan ke generateOTP
             generateOTP(email,req,res);
             //kita ambil otpnya menggunakan getOTP
-            const storedOTP= getStoredOTP(email,req,res);
-            const otp = storedOTP.otp
+            const otp= await getStoredOTP(email);
             //validasi langsung 
             const verifiedOTP = verifyOTP(email,otp,req,res)
             if(verifiedOTP.status == 200){
