@@ -81,8 +81,7 @@ exports.sendNotificationtoAdmin = async (id_survey,nama_lengkap,kompensasi,nama_
 
 
 // Controller: Generate OTP
-exports.generateOTP = (req,res) => {
-  const { email } = req.body; 
+exports.generateOTP = (email,req,res) => {
   if (!email || !validateEmail(email)) {
     return res.status(400).json({ error: "Invalid email address!" });
   }

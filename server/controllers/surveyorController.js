@@ -104,8 +104,7 @@ exports.updateSurveyorProfile = async(req,res) =>{
         if(nomor_rekening) updatedFields.nomor_rekening = nomor_rekening
         if(pin_akses){
             //masukkan ke generateOTP
-            req.body = email;
-            generateOTP(req,res);
+            generateOTP(email,req,res);
             //kita ambil otpnya menggunakan getOTP
             const storedOTP= getStoredOTP(email,req,res);
             const otp = storedOTP.otp
