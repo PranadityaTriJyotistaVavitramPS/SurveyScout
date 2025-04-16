@@ -137,35 +137,18 @@ exports.getStoredOTP = async (email) => {
   
 
 //verify OTP
-exports.verifyOTP = async (email, otp,req, res) => {
-    // Validate input
-    if (!email || !otp) {
-      return res.status(400).json({ error: "Email and OTP are required!" });
+exports.verifyOTP = async (email, otp) => {
+    const storedOtp = await redisClient.get(email);
+  
+    if (!storedOtp) {
+      return res.status(400).json({ error: "OTP expired or not found!" });
     }
   
-    try {
-      // Retrieve OTP from Redis
-      const storedOtp = await redisClient.get(email);
-  
-      if (!storedOtp) {
-        return res.status(400).json({ error: "OTP expired or not found!" });
-      }
-  
-      if (storedOtp === otp) {
-        await redisClient.del(email);
-        // Generate a password reset token (e.g., JWT)
-        const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '15m' });
-  
-        return res.status(200).json({
-          message: "OTP verified successfully!",
-          resetToken, // Send this token to the client
-        });
-      } else {
-        return res.status(400).json({ error: "Invalid OTP!" });
-      }
-    } catch (err) {
-      console.error("Error verifying OTP:", err);
-      res.status(500).json({ error: "Internal Server Error" });
+    if (storedOtp === otp) {
+      await redisClient.del(email);
+      return true
+    } else{
+      return false
     }
   };
 

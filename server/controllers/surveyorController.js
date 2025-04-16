@@ -108,8 +108,8 @@ exports.updateSurveyorProfile = async(req,res) =>{
             //kita ambil otpnya menggunakan getOTP
             const otp= await getStoredOTP(email);
             //validasi langsung 
-            const verifiedOTP = verifyOTP(email,otp,req,res)
-            if(verifiedOTP.status == 200){
+            const verifiedOTP = await verifyOTP(email,otp)
+            if(verifiedOTP == true){
                 updatedFields.pin_akses = pin_akses
             } else {
                 return res.status(403).json({
