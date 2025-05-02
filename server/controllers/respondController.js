@@ -3,6 +3,8 @@ const midtransClient = require('midtrans-client');
 const moment = require('moment-timezone');
 require('moment/locale/id');
 moment.locale('id');
+const {uploadRespondenAnswer,deleteFileFromGoogleStorage,getFileNameFromURL} = require('./uploadFile')
+const {formatDeadline} = require('./surveyController');
 
 //membuat draft respond
 exports.createRespondDraft = async(req,res) =>{
@@ -189,7 +191,7 @@ exports.moveDraftToRespond = async(order_id) =>{
             draft.pekerjaan,draft.status_perkawinan,draft.pendidikan,draft.lokasi_responden
         ]);
 
-        //Hapus dari `survey_draft_table`
+        //Hapus dari `respond_draft_table`
         await query(`DELETE FROM respond_draft_table WHERE order_id = $1`, [order_id]);
         console.log(`✅ Draft respond dengan Order ID: ${order_id} berhasil dipindahkan ke respond_table`);
 
@@ -234,6 +236,22 @@ exports.deleteARespond = async(req,res)=>{
             message:"Internal Server Error",
         })
     }
+}
+
+function formatCreatedAt(timeline) {
+    // Mengonversi string tanggal ke objek Date
+    const timelineDate = new Date(timeline);
+    
+    // Format waktu menjadi jam dan menit (contoh: 13:40 WIB)
+    const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' };
+    const formattedTime = timelineDate.toLocaleTimeString('id-ID', timeOptions);
+    
+    // Format tanggal menjadi (contoh: 12 Februari 2024)
+    const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
+    const formattedDate = timelineDate.toLocaleDateString('id-ID', dateOptions);
+    
+    
+    return `Diunggah pada ${formattedTime} WIB, ${formattedDate}`;
 }
 
 const trackDeadlineStatus = (time) =>{
@@ -301,27 +319,42 @@ exports.respondenProjects = async(req,res) =>{
                 const{id_respond,status} = project;
 
                 const infoRespond = await query(`SELECT * FROM respond_table WHERE id_respond = $1`,[id_respond]);
-                const {tenggat_pendaftaran,tenggat_pengerjaan} = infoRespond.rows[0]
+                const {tenggat_pengerjaan} = infoRespond.rows[0]
+                const deadline_status = trackDeadlineStatus(tenggat_pengerjaan)
 
-                const statDlPengerjaan = trackDeadlineStatus(tenggat_pengerjaan);
-                const statDlPendaftaran = trackDeadlineStatus(tenggat_pendaftaran);
+                if(deadline_status){
+                    await query(`
+                      UPDATE respondent_application
+                      SET status = 'deadline'
+                      WHERE id_respond =$1  
+                    `,[id_respond])
+                }
 
-                if(statDlPendaftaran){
-                    //ubah status di application jadi mengerjakan
-                    //ubah status_task = dikerjakan
+                return {
+                    id_respond:infoRespond.rows[0].id_respond,
+                    nama_proyek:infoRespond.rows[0].nama_proyek,
+                    lokasi:infoRespond.rows[0].lokasi,
+                    kompensasi:infoRespond.rows[0].kompensasi,
+                    status_responden:status
                 }
             })
         )
-        //cari dari respond_table apa aja yang dibutuhkan buat cardnya (nama_proyek,lokasi, kompensasi, )
+        res.status(200).json({
+            message:"success",
+            data:{
+                projectCardDetail
+            }
+        })
         
     } catch (error) {
-        console.error("Error ketika responden ingin melihat projek mereka",error)
+        console.error("Error ketika responden ingin melihat projek mereka daftar",error)
         res.status(500).json({
             message:"Internal Server Error"
         })
     }
 }
-//responden ingin mengumpulkan bukti mereka telah menjawab (png)
+
+
 
 //menampilkan jawaban yang telah dikumpulkan (client-side)
 exports.showRespondenAnswers = async(req,res) =>{
@@ -353,7 +386,311 @@ exports.showRespondenAnswers = async(req,res) =>{
     }
 }
 
-//menerima jawaban responden (ubah status = 'selesai')
-//meminta revisi dari responden (ubah status ='mengerjakan')
+
 //detail respond untuk umum
+exports.getRespondDetail = async(req,res) =>{
+    const {id_respond} = req.params;
+    try {
+        const result = await query(`SELECT * FROM respond_table WHERE id_respond =$1`,[id_respond])
+        if(result.rows.length === 0){
+            return res.status(404).json({
+                message:"respond not found"
+            })
+        }
+        const respondDetail = result.rows[0];
+        const {tenggat_pendaftaran, created_at} = respondDetail
+        const formattedDeadlinePendaftaran = formatDeadline(tenggat_pendaftaran);
+        const formattedDateCreatedAt = formatCreatedAt(created_at)
+
+        res.status(200).json({
+            message:"success",
+            data: {
+                ...respondDetail,
+                tenggat_pendaftaran:formattedDeadlinePendaftaran,
+                created_at:formattedDateCreatedAt
+            }
+        })
+        
+    } catch (error) {
+        console.error("Error ketika mengambil detai respond untuk umum",error)
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+    }
+}
+
+
 //detail respond untuk pendaftar
+exports.getAppliedRespondDetail = async(req,res) =>{
+    const {id_respond} = req.params;
+    const id_responden = req.user.id_user
+    try {
+        //dapatkan info detail dari suatu respond
+        const result = await query(`SELECT * FROM respond_table WHERE id_respond =$1`,[id_respond]);
+        //cari tahu status user pada respond itu
+        const status_responden_query = await query(`
+            SELECT status 
+            FROM respondent_application 
+            WHERE id_responden =$1 AND id_respond =$2`
+        ,[id_responden,id_respond])
+
+        if(result.rows.length === 0){
+            return res.status(404).json({
+                message:"Respond tidak ditemukan"
+            })
+        }
+        const respondDetail = result.rows[0];
+        
+        const formattedDeadline = formatDeadline(respondDetail.tenggat_pengerjaan);
+        const formattedCreatedAt = formatCreatedAt(respondDetail.created_at);
+
+        res.status(200).json({
+            message:"success",
+            data:{
+                ...respondDetail,
+                tenggat_pengerjaan:formattedDeadline,
+                created_at:formattedCreatedAt
+            }
+        })
+    } catch (error) {
+        console.error("Error ketika mengambil detail respond untuk responden yang keterima",error);
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+    }
+}
+
+//responden ingin mengumpulkan bukti mereka telah menjawab (png);
+const multerStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');  
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    console.log("MIME Type File: ", file.mimetype);
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);  
+    } else {
+        cb(new Error('Hanya file gambar yang diperbolehkan!'), false);  
+    }
+};
+
+const upload = multer({ 
+    storage: multerStorage, 
+    fileFilter: fileFilter 
+});
+
+exports.uploadBukti = upload.single('bukti');
+
+exports.submitRespondenAnswer = async(req,res) =>{
+    const {id_respond} = req.params;
+    const id_responden = req.user.id_user;
+    const file_bukti = req.file
+
+    try {
+        if (!file_bukti) {
+            return res.status(400).json({ message: "File bukti tidak ditemukan" });
+        }
+        const check_status_responden = await query(`
+            SELECT status 
+            FROM respondent_application 
+            WHERE id_respond =$1 AND id_responden =$2`,
+        [id_respond,id_responden])
+        if (check_status_responden.rows.length === 0) {
+            return res.status(404).json({ message: "Responden tidak ditemukan" });
+        }
+        const{status} = check_status_responden.rows[0]
+
+        if(["ditolak","mendaftar"].includes(status)){
+            return res.status(403).json({
+                message:"Akses Ditolak"
+            })
+        }
+
+        const outputTarget = await query(`SELECT id_luaran FROM respond_table WHERE id_respond =$1`,[id_respond])
+        if (outputTarget.rows.length === 0) {
+            return res.status(404).json({ message: "Data luaran tidak ditemukan" });
+        }
+        const {id_luaran} = outputTarget.rows[0]
+
+        //isi jawaban dengan memasukkan id_responden
+        if(["mengerjakan","ditinjau"].includes(status)){
+
+            const bukti = await uploadRespondenAnswer(file_bukti)
+
+            //Ketika mengumpulkan, status => pending di luaran_respond
+            const result = await query(`
+                INSERT into luaran_respond (respond_id,file_name,file,file_size,file_type,id_responden) 
+                VALUES ($1,$2,$3,$4,$5,$6)`,
+            [id_luaran,bukti.name,bukti.url,bukti.size,bukti.type,id_responden])
+
+            //Ketika mengajukan jawaban, status=> ditinjau di respondent_application
+            await query(`
+                UPDATE respondent_application
+                SET status = 'ditinjau'
+                WHERE id_respond =$1 AND id_responden =$2
+            `,[id_respond,id_responden])
+
+            //Update status_task pada respond_table
+            await query(`
+                UPDATE respond_table
+                SET status_task ='ditinjau'
+                WHERE id_respond=$1    
+            `,[id_respond])
+
+            res.status(200).json({
+                messsage:"berhasil mengumpulkan bukti jawaban responden",
+                data:result.rows[0]
+            })
+        }
+        
+    } catch (error) {
+        console.error("Error saat mengupload bukti:", error);
+        res.status(500).json({ message: "Terjadi kesalahan saat upload bukti" });   
+    }
+}
+
+
+
+//menerima jawaban responden (ubah status = 'selesai');
+exports.accRespondenAnswer = async(req,res) =>{
+    //id_respond & id_responden sebagai input
+    const{id_respond} = req.params;
+    const {id_responden} = req.body;
+    try {
+        //cari target luarannya dan jumlah_pendaftar dengan status selain ditolak dan mendaftar di respondent_application
+        const targetLuaran = await query(`SELECT id_luaran,jumlah_responden FROM respond_table WHERE id_respond =$1`,[id_respond])
+        if(targetLuaran.rows[0]){
+            return res.status(404).json({
+                message:"target Luaran tidak ditemukan"
+            })
+        }
+
+        const {id_luaran,jumlah_responden} = targetLuaran.rows[0]
+            
+        //cari tahu dan ganti status pada luaran_respond di id_responden = x dan respond_id =x
+        await query(`
+            UPDATE luaran_respond 
+            SET status ='selesai'
+            WHERE id_responden=$1 AND respond_id=$2      
+        `,[id_responden,id_luaran])
+
+        //ganti status pada respondent_application = 'selesai'
+        await query(`
+            UPDATE respondent_application
+            SET status='selesai'
+            WHERE id_responden =$1 AND id_respond=$2   
+        `,[id_responden,id_respond])
+
+        //cek apabila status pada respondent_application ='selesai' berjumlah sama dengan jumlah_responden, maka status_task pada respond_table ='selesai'
+        //cek jumlah responden yang memiliki status selesai 
+        const checkRespondenSelesai = await query(`
+            SELECT * 
+            FROM respondent_application 
+            WHERE status = 'selesai' AND id_respond =$1`,
+        [id_respond])
+
+        if(jumlah_responden === checkRespondenSelesai.rows.length){
+            await query(`
+                UPDATE respond_table
+                SET status_task = 'selesai'
+                WHERE id_respond =$1    
+            `,[id_respond])
+        }
+    } catch (error) {
+        console.error("Error ketika acc bukti dari responden ")
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+    }
+}
+
+//meminta responden revisi;
+exports.revisiRespondenAnswer = async(req,res) =>{
+    const{id_respond} = req.params;
+    const{id_responden,tenggat_revisi,task_revisi} = req.body
+    try {
+        const outputTarget = await query(`SELECT id_luaran FROM respond_table WHERE id_respond =$1`,[id_respond])
+        const status_RevisiQuery = await query(`
+            SELECT status_revisi 
+            FROM respondent_application 
+            WHERE id_responden =$1 AND id_respond =$2
+        `,[id_responden,id_respond])
+        const {id_luaran} = outputTarget.rows[0];
+        const {status_revisi} = status_RevisiQuery.rows[0]
+
+        if(status_revisi == false){
+            //ganti status_task pada respond_table kembali ke 'dikerjakan'
+            await query(`
+                UPDATE respond_table
+                SET status_task = 'dikerjakan'
+                WHERE id_respond =$1
+            `)
+
+            //masukkan tenggat_revisi dan task_revisi pada respondent_application, tujuan ? biar berbeda per responden
+            await query(`
+                INSERT INTO respondent_application (tenggat_revisi, task_revisi)
+                VALUES ($1,$2)
+                RETURNING *
+            `,[tenggat_revisi,task_revisi])
+
+            //status = 'mengerjakan' pada respondent_application dan status_revisi ='true'
+            await query(`
+                UPDATE respondent_application
+                SET status_revisi = 'true',
+                status='mengerjakan'    
+            `)
+            res.status(200).json({
+                status:"1",
+                message:"berhasil meminta revisi"
+            })
+
+        } else{
+            res.status(400).json({
+                status:"0",
+                message:"Tidak dapat melakukan revisi, kesempatan revisi telah habis"
+            })
+        }
+
+    } catch (error) {
+        console.error("Error ketika meminta responden melakukan revisi",error)
+        res.status(500).json({
+            message:"Internal Server Error"
+        })
+    }
+}
+
+
+
+//hapus jawaban responden
+exports.deleteRespondAnswer = async(req,res) =>{
+    const {respond_id} = req.body;
+    const {id_luaran} = req.params;
+    try {
+      //hapus dulu dari google cloud console
+      const currentFile = await query(`SELECT file FROM luaran_respond WHERE id_luaran = $1 AND respond_id =$2`,[id_luaran,respond_id])
+  
+      const oldFileUrl = currentFile.rows[0]?.file
+      const fileName = getFileNameFromURL(oldFileUrl)
+  
+      console.log("oldFile Urlnya:",oldFileUrl);
+      console.log("Filenamenya yang dihapus:",fileName);
+  
+      await deleteFileFromGoogleStorage(fileName)
+      //dia ngehapus dari luaran_table id_luaran di respond_id ini
+      await query(`DELETE FROM luaran_respond WHERE id_luaran =$1 AND respond_id =$2`,[id_luaran,respond_id])
+      res.status(204).end();
+      
+    } catch (error) {
+        console.error("Error ketika menghapus jawaban",error);
+        res.status(500).json({
+          message:"Internal Server Error"
+        })
+    }
+  }
+
+

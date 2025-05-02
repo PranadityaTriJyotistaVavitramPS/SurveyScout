@@ -150,7 +150,6 @@ exports.rejSurveyor = async(req,res) =>{
         res.status(500).json({
             message:"gagal menolak surveyor"
         })
-        
     }
 }
 

@@ -93,10 +93,14 @@ exports.accResponden = async(req,res) =>{
 
         //kalau lebih dari x(yang dibutuhkan) maka yang lainnya diubah ke ditolak, kalau nggak yawes terima aja
         if(jumlah_candidate > kuotaWorker){
-            const acceptedCandidate = checkCandidate.rows.find(candidate => candidate.status === 'mengerjakan');
+            const acceptedCandidate = checkCandidate.rows.find(candidate => 
+                ['mengerjakan', 'deadline', 'ditinjau', 'selesai'].includes(candidate.status)
+            );
             
-            if(acceptedCandidate){
-                const rejectedCandidate = checkCandidate.rows.filter(candidate => candidate.status !== 'mengerjakan');
+            if(acceptedCandidate >= kuotaWorker){
+                const rejectedCandidates = checkCandidate.rows.filter(candidate => 
+                    !['mengerjakan', 'deadline', 'ditinjau', 'selesai'].includes(candidate.status)
+                );
                 for(const candidate of rejectedCandidate){
                     await query(`
                         UPDATE respondent_application 
@@ -104,6 +108,11 @@ exports.accResponden = async(req,res) =>{
                         WHERE id_responden =$1 AND id_respond =$2
                     `,[id_responden,id_respond])
                 }
+                await query(`
+                    UPDATE respond_table
+                    SET status_task ='dikerjakan'
+                    WHERE id_respond = $1
+                `,[id_respond])
             } else {
                 await query(`
                     UPDATE respondent_application 

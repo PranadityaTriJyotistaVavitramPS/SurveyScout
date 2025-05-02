@@ -12,7 +12,7 @@ exports.ratingASurvey = async(req,res) =>{
     const{id_survey} = req.params;
     const rating = req.body
     try {
-        const SurveyorIdentity = await query(`SELECT id_surveyor FROM surveyor_application WHERE id_survey = $1`,[id_survey]);
+        const SurveyorIdentity = await query(`SELECT id_surveyor FROM surveyor_application WHERE id_survey = $1 AND status ='selesai'`,[id_survey]);
         const {id_surveyor} = SurveyorIdentity.rows[0];
 
         const SurveyorRateStatus = await query(`SELECT sum_rating,total_project,avg_rating,good_project 
