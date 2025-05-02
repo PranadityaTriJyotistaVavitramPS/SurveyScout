@@ -274,7 +274,7 @@ exports.clientProjects = async (req, res) => {
           const { id_survey, order_id} = project;
           if ((id_survey && id_survey.startsWith('ASD')) || (order_id && order_id.startsWith('SURVEY')) ) {
               
-              if(id_survey.startsWith('ASD')){
+            if(id_survey.startsWith('ASD')){
                 const { created_at, tenggat_pengerjaan, id_survey,id_luaran} = project;
 
                 const checkStatusApplication = await query(`SELECT * FROM surveyor_application WHERE id_survey =$1`,[id_survey])
@@ -323,10 +323,29 @@ exports.clientProjects = async (req, res) => {
               });
 
           } else if ((id_survey && id_survey.startsWith('RES')) || (order_id && order_id.startsWith('RESPOND'))) {
-          
-              if(id_survey.startsWith('RES')){
-                const urutanStatusResponden=["mendaftar","mengerjakan","ditinjau","selesai"];
 
+          
+            if(id_survey.startsWith('RES')){
+                const { created_at, tenggat_pengerjaan, id_survey} = project;
+                const checkStatusApplication = await query(`SELECT * FROM respondent_application WHERE id_respond =$1`,[id_survey])
+
+                if(trackDeadlineStatus(tenggat_pengerjaan)){
+                    await query(`
+                        UPDATE respond_table
+                        SET status_task ='peringatan'
+                        WHERE id_respond =$1
+                    `,[id_survey])
+                }
+
+                if(trackRecruitmenStatus(created_at) && checkStatusApplication.rows.length === 0){
+                    await query(`
+                        UPDATE respond_table
+                        SET status_task ='kadaluwarsa'
+                        WHERE id_respond =$1
+                    `,[id_survey])
+                }
+
+                const urutanStatusResponden=["mendaftar","mengerjakan","ditinjau","selesai"];
                 const respondenStatusQuery = await query(`
                     SELECT status 
                     FROM respondent_application 
@@ -335,40 +354,40 @@ exports.clientProjects = async (req, res) => {
 
                 if(respondenStatusQuery.rows.length >= 1){
                     const respondenStatus = respondenStatusQuery.rows.map(item => item.status)
-                const isDeadline = respondenStatusQuery.rows.find(responden=>responden.status === 'deadline')
-                if(!isDeadline){
-                    const statusPalingAwal = respondenStatus.reduce((minStatus,statusNow) =>{
-                        return urutanStatusResponden.indexOf(statusNow) < urutanStatusResponden.indexOf(minStatus)? statusNow:minStatus
-                    })
+                    const isDeadline = respondenStatusQuery.rows.find(responden=>responden.status === 'deadline')
+                    if(!isDeadline){
+                        const statusPalingAwal = respondenStatus.reduce((minStatus,statusNow) =>{
+                            return urutanStatusResponden.indexOf(statusNow) < urutanStatusResponden.indexOf(minStatus)? statusNow:minStatus
+                        })
 
-                    if(statusPalingAwal == 'mendaftar'){
-                        await query(`
-                            UPDATE respond_table
-                            SET status_task = 'merekrut' 
-                            WHERE id_respond =$1    
-                        `,[id_survey])
-                    }else if(statusPalingAwal == 'mengerjakan'){
-                        await query(`
-                            UPDATE respond_table
-                            SET status_task = 'dikerjakan' 
-                            WHERE id_respond =$1    
-                        `,[id_survey])
+                        if(statusPalingAwal == 'mendaftar'){
+                            await query(`
+                                UPDATE respond_table
+                                SET status_task = 'merekrut' 
+                                WHERE id_respond =$1    
+                            `,[id_survey])
+                        }else if(statusPalingAwal == 'mengerjakan'){
+                            await query(`
+                                UPDATE respond_table
+                                SET status_task = 'dikerjakan' 
+                                WHERE id_respond =$1    
+                            `,[id_survey])
 
-                    }else if(statusPalingAwal == 'ditinjau'){
-                        await query(`
-                            UPDATE respond_table
-                            SET status_task = 'ditinjau' 
-                            WHERE id_respond =$1    
-                        `,[id_survey])
+                        }else if(statusPalingAwal == 'ditinjau'){
+                            await query(`
+                                UPDATE respond_table
+                                SET status_task = 'ditinjau' 
+                                WHERE id_respond =$1    
+                            `,[id_survey])
 
-                    }else if(statusPalingAwal == 'selesai'){
-                        await query(`
-                            UPDATE respond_table
-                            SET status_task = 'selesai' 
-                            WHERE id_respond =$1    
-                        `,[id_survey])
+                        }else if(statusPalingAwal == 'selesai'){
+                            await query(`
+                                UPDATE respond_table
+                                SET status_task = 'selesai' 
+                                WHERE id_respond =$1    
+                            `,[id_survey])
+                        }
                     }
-                }
    
                 }
               } 
