@@ -9,5 +9,4 @@ router.get('/getBookmarkedProject',authenticate,projectsController.showBookmarke
 router.get('/:id_project',projectsController.getProjectsDetail);
 router.post('/:id_project/bookmarkProject',authenticate,projectsController.projectBookmarked);
 
-
 module.exports = router;

@@ -439,8 +439,6 @@ exports.projectBookmarked = async(req,res) =>{
                 data:savedRespond.rows[0]
             })    
         }
-        //berikan status (200) apabila berhasil
-        
         
     } catch (error) {
         console.error("Error ketika melakukan bookmark suatu project");

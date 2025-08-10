@@ -78,7 +78,7 @@ exports.updateClientProfile = async(req,res) =>{
     const {id_user,email} = req.user; 
 
     try {
-        //menentukan field apa saja yang perlu di update
+        //menentukan field apa saja yang perlu di update    
         const updatedFields={};
 
         if(nik) updatedFields.nik= nik;

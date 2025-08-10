@@ -17,8 +17,8 @@ exports.getSignedUrlForever = async (fileName) => {
 
     return url;
   } catch (error) {
-    console.error('Error generating signed URL:', error);
-    throw new Error('Failed to generate signed URL');
+      console.error('Error generating signed URL:', error);
+      throw new Error('Failed to generate signed URL');
   }
 };
 
@@ -35,7 +35,7 @@ exports.uploadCVFiles = async(file) => {
         console.error('Error deleting local file:', err);
       }
         console.log(`File ${file.path} deleted locally`);
-      });
+    });
 
     console.log(`File uploaded to ${destination}`);
     const fileUrl = await exports.getSignedUrlForever(destination);
@@ -46,8 +46,6 @@ exports.uploadCVFiles = async(file) => {
       console.error('Error uploading file to google Cloud',error);
       throw new Error('Failed to upload file');
   }
-
-
 }
 
 exports.uploadPictureFile = async (file) => {
